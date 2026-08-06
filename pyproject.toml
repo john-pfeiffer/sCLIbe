@@ -1,0 +1,21 @@
+[project]
+name = "shinescript"
+version = "0.1.0"
+description = "Turn a screen recording into a step-by-step guide and a narrated, chaptered video."
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.60",
+    "pydantic>=2",
+    "scenedetect[opencv]>=0.6.3",
+    "markdown>=3.5",
+]
+
+[project.scripts]
+shine = "shinescript.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
