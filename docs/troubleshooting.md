@@ -9,7 +9,7 @@ Problems, causes, and fixes — roughly in the order you might hit them.
 The virtual environment isn't active in this terminal:
 
 ```bash
-cd ShineScript && source .venv/bin/activate
+cd sCLIbe && source .venv/bin/activate
 ```
 
 You need to do this once per terminal session (or invoke it directly: `.venv/bin/shine ...`).
