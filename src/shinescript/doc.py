@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from .style import Style
 from .util import fmt_ts, log, run_ffmpeg
 
 HTML_TEMPLATE = """\
@@ -12,10 +13,11 @@ HTML_TEMPLATE = """\
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{title}</title>
 <style>
-  body {{ font-family: -apple-system, "Segoe UI", sans-serif; line-height: 1.6;
+  :root {{ --accent: {accent}; }}
+  body {{ font-family: "{font}", -apple-system, "Segoe UI", sans-serif; line-height: 1.6;
          max-width: 860px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }}
-  h1 {{ border-bottom: 2px solid #e5e5e5; padding-bottom: .4rem; }}
-  h3 {{ margin-top: 2.2rem; }}
+  h1 {{ border-bottom: 3px solid var(--accent); padding-bottom: .4rem; }}
+  h3 {{ margin-top: 2.2rem; color: var(--accent); }}
   img {{ max-width: 100%; border: 1px solid #d5d5d5; border-radius: 6px;
         box-shadow: 0 1px 4px rgba(0,0,0,.08); }}
   .ts {{ color: #777; font-size: .85em; }}
@@ -29,7 +31,7 @@ HTML_TEMPLATE = """\
 """
 
 
-def generate(video: Path, steps_data: dict, outdir: Path) -> None:
+def generate(video: Path, steps_data: dict, outdir: Path, style: Style) -> None:
     shots = outdir / "screenshots"
     shots.mkdir(parents=True, exist_ok=True)
 
@@ -58,6 +60,9 @@ def generate(video: Path, steps_data: dict, outdir: Path) -> None:
 
     html_body = markdown.markdown(md_text)
     (outdir / "guide.html").write_text(
-        HTML_TEMPLATE.format(title=steps_data["process_title"], body=html_body)
+        HTML_TEMPLATE.format(
+            title=steps_data["process_title"], body=html_body,
+            accent=style.accent, font=style.font,
+        )
     )
     log.info("wrote guide.md and guide.html (%d steps)", len(steps_data["steps"]))

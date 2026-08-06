@@ -59,8 +59,11 @@ For each step, re-extracts `key_frame_time` from the original video at **full re
 - Each step's `[start_time, end_time]` gets ±0.25s of breathing room, clamped so ranges never overlap.
 - Each range is cut with an accurate seek and **re-encoded** (`libx264`, capped at 1080p) rather than stream-copied — stream copy can only cut on keyframes, which produces sloppy cut points and concat glitches. Screen content encodes fast.
 - Everything outside the step ranges — idle screens, waiting, wandering — is simply never cut into a segment. That's the dead-time removal.
+- Unless `--no-banners`: a lower-third label ("Step N — Title") in the accent color is burned into the first 4 seconds of each segment via ffmpeg's `drawtext` (text goes through a `textfile` to avoid escaping issues; fonts resolve by name through fontconfig).
 
 ### 6. narrate (`narrate.py`)
+
+Unless `--no-title-card`: an intro card (process title + step count on the accent background, sized to match the segments' resolution/fps so concat stays lossless) is generated first, with the `process_summary` read over it as narration — the card extends to fit the audio.
 
 Per step:
 
@@ -70,7 +73,7 @@ Per step:
    - audio longer than the segment → freeze the segment's last frame until the narration finishes (what a human editor would do)
 3. Mux audio onto the segment (AAC 48kHz stereo).
 
-Then all narrated segments are concatenated (concat demuxer, stream copy — all segments share identical encoding parameters), and chapter metadata is attached via an ffmetadata file (`[CHAPTER]` blocks with millisecond offsets). QuickTime, VLC, and YouTube all read these chapters.
+Then all narrated segments (title card first, when enabled) are concatenated (concat demuxer, stream copy — all segments share identical encoding parameters), and chapter metadata is attached via an ffmetadata file (`[CHAPTER]` blocks with millisecond offsets) — an "Intro" chapter for the card, then one per step. QuickTime, VLC, and YouTube all read these chapters.
 
 ## `steps.json` reference
 
@@ -120,6 +123,7 @@ Levers: `--max-frames` caps the biggest cost driver; `--model` trades quality fo
 | File | Responsibility |
 |---|---|
 | `cli.py` | argparse, stage orchestration, cache/skip logic, the `Job` dataclass |
+| `style.py` | `Style` dataclass (accent/font/scale/toggles), `ffcolor`/`fit_fontsize` (pure/tested) |
 | `ingest.py` | stage 1 — probe |
 | `frames.py` | stage 2 — candidate selection (`plan_timestamps` is pure/tested) + extraction |
 | `analyze.py` | stage 3 — Pydantic schema, prompt, API call, `sanitize()` (pure/tested) |

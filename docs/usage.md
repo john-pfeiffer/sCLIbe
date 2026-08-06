@@ -92,6 +92,11 @@ shine VIDEO [flags]
 | `--force` | off | Redo every stage, **including the paid analysis** |
 | `--voice NAME` | `Samantha` | macOS narration voice (`say -v '?'` lists them; Enhanced voices sound much better — see [setup](setup.md)) |
 | `--rate WPM` | `175` | Narration speed in words per minute |
+| `--accent HEX` | `#2563eb` | Brand color used for the video's step banners and title card, and for headings in `guide.html` |
+| `--font NAME` | `Helvetica Neue` | Font for video text and the HTML guide — any font installed on the Mac (check Font Book for names) |
+| `--font-scale N` | `1.0` | Multiplier on all rendered text sizes (e.g. `1.3` for bigger banners) |
+| `--no-banners` | off | Skip the step-label overlay at the start of each video segment |
+| `--no-title-card` | off | Skip the narrated intro card before step 1 |
 | `--threshold N` | `10` | Scene-change sensitivity. Lower = more frames captured. Raise it if you get hundreds of frames from a busy screen; lower it (e.g. 6) if steps are being missed. |
 | `--max-frames N` | `60` | Hard cap on frames sent to the API (cost control). Longer videos get thinned to fit. |
 | `-o DIR` / `--output-root DIR` | `./output` | Output root directory |
@@ -107,6 +112,22 @@ an accountant; the popup at the end is the confirmation email preview."
 ```
 
 Good context mentions: the app/site, the business purpose, who the guide is for, and anything on screen that would otherwise look confusing. The context is saved into `steps.json` so you can see what a past run was told. Changing `--context` alone doesn't invalidate a cached analysis — add `--from analyze` to redo it (paid call).
+
+### Styling the video and guide
+
+The final video opens with a **title card** (process title on your accent color, with the summary read as narration) and each step starts with a **lower-third banner** showing its number and title. The same accent color and font style the HTML guide's headings, so docs and video match your brand:
+
+```bash
+shine rec.mov --accent "#0E7C5B" --font "Avenir Next"
+shine rec.mov --no-title-card --no-banners        # plain video, no overlays
+```
+
+Styling is free to change after the fact — it doesn't touch the AI analysis:
+
+```bash
+shine rec.mov --accent "#B45309" --from video     # restyle banners + card + video ($0)
+shine rec.mov --accent "#B45309" --from doc       # also refresh guide.html colors ($0)
+```
 
 ### Common invocations
 

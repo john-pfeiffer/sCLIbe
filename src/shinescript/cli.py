@@ -17,6 +17,7 @@ from . import analyze as analyze_mod
 from . import doc as doc_mod
 from . import frames as frames_mod
 from . import ingest, narrate, video as video_mod
+from .style import Style, ffcolor
 from .util import ToolError, check_tools, log
 
 STAGES = ["probe", "frames", "analyze", "doc", "video", "narrate"]
@@ -33,6 +34,7 @@ class Job:
     threshold: float
     max_frames: int
     context: str | None = None
+    style: Style = field(default_factory=Style)
     meta: dict = field(default_factory=dict)
     segments: list = field(default_factory=list)
 
@@ -87,7 +89,7 @@ def stage_doc(job: Job, force: bool) -> None:
     if (job.outdir / "guide.md").exists() and not force:
         log.info("doc: cached")
         return
-    doc_mod.generate(job.video, analyze_mod.load_steps(job.steps_path), job.outdir)
+    doc_mod.generate(job.video, analyze_mod.load_steps(job.steps_path), job.outdir, job.style)
 
 
 def stage_video(job: Job, force: bool) -> None:
@@ -99,7 +101,7 @@ def stage_video(job: Job, force: bool) -> None:
         log.info("video: cached (%d segments)", len(expected))
         return
     job.segments = video_mod.cut_segments(
-        job.video, steps, job.meta["duration"], job.work
+        job.video, steps, job.meta["duration"], job.work, job.style
     )
 
 
@@ -110,7 +112,7 @@ def stage_narrate(job: Job, force: bool) -> None:
         return
     narrate.narrate(
         analyze_mod.load_steps(job.steps_path), job.segments, job.work,
-        final, job.voice, job.rate,
+        final, job.voice, job.rate, job.style, job.meta,
     )
 
 
@@ -146,6 +148,19 @@ def main() -> None:
                         help="generate the written guide only")
     parser.add_argument("--voice", default="Samantha", help="macOS `say` voice (default: Samantha)")
     parser.add_argument("--rate", type=int, default=175, help="speech rate wpm (default: 175)")
+    styling = parser.add_argument_group("styling")
+    styling.add_argument("--accent", default="#2563eb", metavar="HEX",
+                         help="brand color for banners, title card, and guide.html "
+                              "(default: #2563eb)")
+    styling.add_argument("--font", default="Helvetica Neue", metavar="NAME",
+                         help="font for video text and guide.html — any installed Mac font "
+                              "(default: Helvetica Neue)")
+    styling.add_argument("--font-scale", type=float, default=1.0, metavar="N",
+                         help="multiplier on rendered text sizes (default: 1.0)")
+    styling.add_argument("--no-banners", action="store_true",
+                         help="no step label overlay on video segments")
+    styling.add_argument("--no-title-card", action="store_true",
+                         help="no narrated intro card before step 1")
     parser.add_argument("--threshold", type=float, default=10.0,
                         help="scene-change sensitivity, lower = more frames (default: 10)")
     parser.add_argument("--max-frames", type=int, default=60,
@@ -160,6 +175,10 @@ def main() -> None:
 
     if not args.video.exists():
         sys.exit(f"error: {args.video} not found")
+    try:
+        ffcolor(args.accent)
+    except ValueError as exc:
+        sys.exit(f"error: {exc}")
     check_tools(require_say=not args.no_video)
 
     job = Job(
@@ -171,6 +190,13 @@ def main() -> None:
         threshold=args.threshold,
         max_frames=args.max_frames,
         context=args.context,
+        style=Style(
+            accent=args.accent,
+            font=args.font,
+            font_scale=args.font_scale,
+            banners=not args.no_banners,
+            title_card=not args.no_title_card,
+        ),
     )
     job.work.mkdir(parents=True, exist_ok=True)
 

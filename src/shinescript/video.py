@@ -1,7 +1,8 @@
-"""Stage 5: cut per-step segments, concat, and chapter metadata helpers."""
+"""Stage 5: cut per-step segments, concat, chapter metadata, and the intro title card."""
 
 from pathlib import Path
 
+from .style import BANNER_SECONDS, Style, ffcolor, fit_fontsize
 from .util import log, run_ffmpeg
 
 SEGMENT_PAD = 0.25  # breathing room around each step's range
@@ -23,20 +24,67 @@ def padded_ranges(steps: list[dict], duration: float) -> list[tuple[float, float
     return ranges
 
 
-def cut_segments(video: Path, steps: list[dict], duration: float, workdir: Path) -> list[Path]:
+def banner_filter(textfile: Path, style: Style) -> str:
+    """Lower-third step label shown for the first BANNER_SECONDS of a segment."""
+    return (
+        f"drawtext=textfile='{textfile}':font='{style.font}':fontcolor=white"
+        f":fontsize=h/22*{style.font_scale:.2f}"
+        f":box=1:boxcolor={ffcolor(style.accent)}@0.85:boxborderw=14"
+        f":x=w*0.03:y=h*0.88:enable='lt(t,{BANNER_SECONDS})'"
+    )
+
+
+def cut_segments(
+    video: Path, steps: list[dict], duration: float, workdir: Path, style: Style
+) -> list[Path]:
     seg_dir = workdir / "segments"
     seg_dir.mkdir(parents=True, exist_ok=True)
     out_files = []
     for step, (start, end) in zip(steps, padded_ranges(steps, duration)):
         out = seg_dir / f"seg-{step['number']:02d}.mp4"
+        vf = "scale=-2:'min(1080,ih)'"
+        if style.banners:
+            textfile = seg_dir / f"banner-{step['number']:02d}.txt"
+            textfile.write_text(f"Step {step['number']} — {step['title']}")
+            vf += "," + banner_filter(textfile, style)
         run_ffmpeg([
             "-ss", f"{start:.3f}", "-to", f"{end:.3f}", "-i", video,
-            "-vf", "scale=-2:'min(1080,ih)'", *ENCODE_ARGS, "-an",
+            "-vf", vf, *ENCODE_ARGS, "-an",
             out,
         ])
         out_files.append(out)
-    log.info("cut %d segments (dead time removed)", len(out_files))
+    log.info(
+        "cut %d segments (dead time removed%s)",
+        len(out_files), ", step banners on" if style.banners else "",
+    )
     return out_files
+
+
+def make_title_card(
+    title: str, subtitle: str, width: int, height: int, fps: float,
+    seconds: float, style: Style, workdir: Path,
+) -> Path:
+    """Silent intro card matching the segments' encoding, for concat compatibility."""
+    title_file = workdir / "card-title.txt"
+    sub_file = workdir / "card-subtitle.txt"
+    title_file.write_text(title)
+    sub_file.write_text(subtitle)
+    title_size = int(fit_fontsize(title, width, height // 10) * style.font_scale)
+    sub_size = max(14, int(height / 32 * style.font_scale))
+    out = workdir / "title-card.mp4"
+    run_ffmpeg([
+        "-f", "lavfi",
+        "-i", f"color=c={ffcolor(style.accent)}:s={width}x{height}:d={seconds:.2f}:r={fps:g}",
+        "-vf", (
+            f"drawtext=textfile='{title_file}':font='{style.font}':fontcolor=white"
+            f":fontsize={title_size}:x=(w-text_w)/2:y=h*0.42-text_h/2,"
+            f"drawtext=textfile='{sub_file}':font='{style.font}':fontcolor=white@0.85"
+            f":fontsize={sub_size}:x=(w-text_w)/2:y=h*0.58"
+        ),
+        *ENCODE_ARGS,
+        out,
+    ])
+    return out
 
 
 def concat(files: list[Path], out: Path) -> None:

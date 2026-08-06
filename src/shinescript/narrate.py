@@ -3,8 +3,9 @@
 import subprocess
 from pathlib import Path
 
+from .style import TITLE_CARD_SECONDS, Style
 from .util import ToolError, log, media_duration, run, run_ffmpeg
-from .video import ENCODE_ARGS, apply_chapters, concat
+from .video import ENCODE_ARGS, apply_chapters, concat, make_title_card
 
 AUDIO_ARGS = ["-c:a", "aac", "-ar", "48000", "-ac", "2"]
 
@@ -49,6 +50,13 @@ def fit_and_mux(segment: Path, aiff: Path, out: Path) -> None:
         ])
 
 
+def segment_dims(meta: dict) -> tuple[int, int]:
+    """Output width/height after the segments' scale=-2:'min(1080,ih)' filter."""
+    height = min(1080, meta["height"])
+    width = 2 * round(meta["width"] * height / meta["height"] / 2)
+    return width, height
+
+
 def narrate(
     steps_data: dict,
     segments: list[Path],
@@ -56,6 +64,8 @@ def narrate(
     final_out: Path,
     voice: str,
     rate: int,
+    style: Style,
+    meta: dict,
 ) -> None:
     audio_dir = workdir / "audio"
     narrated_dir = workdir / "narrated"
@@ -64,6 +74,24 @@ def narrate(
 
     steps = steps_data["steps"]
     narrated_files = []
+    titles = []
+
+    if style.title_card:
+        width, height = segment_dims(meta)
+        n = len(steps)
+        card = make_title_card(
+            steps_data["process_title"],
+            f"{n} step{'s' if n != 1 else ''}",
+            width, height, meta["fps"] or 30, TITLE_CARD_SECONDS, style, workdir,
+        )
+        intro_aiff = audio_dir / "intro.aiff"
+        tts(steps_data["process_summary"], intro_aiff, voice, rate)
+        intro = narrated_dir / "step-00.mp4"
+        fit_and_mux(card, intro_aiff, intro)
+        narrated_files.append(intro)
+        titles.append("Intro")
+        log.info("added narrated title card")
+
     for step, segment in zip(steps, segments):
         n = step["number"]
         aiff = audio_dir / f"step-{n:02d}.aiff"
@@ -71,10 +99,10 @@ def narrate(
         out = narrated_dir / f"step-{n:02d}.mp4"
         fit_and_mux(segment, aiff, out)
         narrated_files.append(out)
+        titles.append(f"Step {step['number']} — {step['title']}")
         log.info("narrated step %d/%d", n, len(steps))
 
     combined = workdir / "combined.mp4"
     concat(narrated_files, combined)
-    titles = [f"Step {s['number']} — {s['title']}" for s in steps]
     durations = [media_duration(f) for f in narrated_files]
     apply_chapters(combined, titles, durations, final_out)

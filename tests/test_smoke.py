@@ -65,3 +65,25 @@ def test_padded_ranges_never_overlap():
     ranges = padded_ranges(steps, duration=30.0)
     assert ranges[0][1] <= ranges[1][0]
     assert ranges[0][0] == 0.75  # 1.0 - 0.25 pad
+
+
+def test_ffcolor_accepts_hash_and_bare_hex():
+    from shinescript.style import ffcolor
+    assert ffcolor("#2563EB") == "0x2563eb"
+    assert ffcolor("ff0000") == "0xff0000"
+
+
+def test_ffcolor_rejects_garbage():
+    import pytest
+    from shinescript.style import ffcolor
+    for bad in ("blue", "#12345", "#12345g"):
+        with pytest.raises(ValueError):
+            ffcolor(bad)
+
+
+def test_fit_fontsize_shrinks_for_long_titles():
+    from shinescript.style import fit_fontsize
+    short = fit_fontsize("Hi", 1280, 108)
+    long = fit_fontsize("A Very Long Process Title That Goes On And On Forever", 1280, 108)
+    assert short == 108
+    assert 16 <= long < short
