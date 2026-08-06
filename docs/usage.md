@@ -22,9 +22,9 @@ Any tool that produces a video file works. The easiest on a Mac is built-in:
 ## 2. Run ShineScript
 
 ```bash
-cd ShineScript
+cd sCLIbe
 source .venv/bin/activate
-shine ~/Desktop/my-recording.mov
+shine ~/Desktop/my-recording.mov --context "What this recording shows"
 ```
 
 You'll see each stage log as it runs. The line to watch:
@@ -94,8 +94,8 @@ shine VIDEO [flags]
 | `--rate WPM` | `175` | Narration speed in words per minute |
 | `--threshold N` | `10` | Scene-change sensitivity. Lower = more frames captured. Raise it if you get hundreds of frames from a busy screen; lower it (e.g. 6) if steps are being missed. |
 | `--max-frames N` | `60` | Hard cap on frames sent to the API (cost control). Longer videos get thinned to fit. |
-| `-o DIR` | `./output` | Output root directory |
-| `-v` | off | Verbose logging (shows every ffmpeg command) |
+| `-o DIR` / `--output-root DIR` | `./output` | Output root directory |
+| `-v` / `--verbose` | off | Verbose logging (shows every ffmpeg command) |
 
 ### Give the AI context (recommended)
 
@@ -111,6 +111,7 @@ Good context mentions: the app/site, the business purpose, who the guide is for,
 ### Common invocations
 
 ```bash
+shine rec.mov --context "New-hire guide to our invoice workflow in QuickBooks"
 shine rec.mov --model claude-haiku-4-5      # cheap first pass (~$0.07)
 shine rec.mov --no-video                    # just the written guide
 shine rec.mov --from narrate --voice "Ava (Premium)" --rate 165   # re-voice only

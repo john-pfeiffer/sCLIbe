@@ -80,7 +80,8 @@ Then all narrated segments are concatenated (concat demuxer, stream copy — all
     "model": "claude-opus-5",     // model that produced this analysis
     "frames_hash": "a1b2c3d4e5f6", // hash of the frame manifest (staleness check)
     "video": "my-recording.mov",
-    "duration": 612.5
+    "duration": 612.5,
+    "context": "..."               // the --context text this analysis was given (null if none)
   },
   "process_title": "Create a Customer Invoice",
   "process_summary": "How to create and send an invoice from the billing dashboard.",

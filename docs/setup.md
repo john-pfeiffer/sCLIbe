@@ -28,11 +28,11 @@ brew install python@3.12
 
 ## 3. Install ShineScript
 
-From wherever you keep code (adjust the clone URL to wherever this repo lives):
+From wherever you keep code:
 
 ```bash
-git clone <repo-url> ShineScript
-cd ShineScript
+git clone git@github.com:john-pfeiffer/sCLIbe.git
+cd sCLIbe
 /opt/homebrew/bin/python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -e .
@@ -60,7 +60,7 @@ source ~/.zshrc
 ## 5. Verify the installation
 
 ```bash
-cd ShineScript
+cd sCLIbe
 source .venv/bin/activate
 shine --help          # should print the usage screen
 ffmpeg -version       # should print version info

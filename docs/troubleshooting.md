@@ -87,6 +87,7 @@ shine rec.mov --from analyze     # paid call
 
 ### Steps are too coarse / too granular, or descriptions are thin
 
+- **Add `--context` first** — a sentence about the app and business purpose is the biggest quality lever, and it works on any model: `shine rec.mov --context "..." --from analyze` (paid call; check `_meta.context` in `steps.json` to see what a past run was told)
 - Try the default Opus model if you used Haiku — quality difference is real on subtle UIs
 - Merge or split steps by hand in `steps.json` (it's just JSON — copy a step object, adjust the time ranges, rerun `--from doc`)
 

@@ -18,14 +18,16 @@ Already have Homebrew and an Anthropic API key? (If not, start with the [setup g
 
 ```bash
 brew install ffmpeg
-git clone <this-repo> && cd ShineScript
+git clone git@github.com:john-pfeiffer/sCLIbe.git && cd sCLIbe
 /opt/homebrew/bin/python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -e .
 export ANTHROPIC_API_KEY="sk-ant-..."   # add to ~/.zshrc to make it permanent
 
-shine ~/Desktop/my-recording.mov
+shine ~/Desktop/my-recording.mov --context "What this recording shows and who the guide is for"
 ```
+
+The `--context` sentence is optional but strongly recommended — it's how the AI knows what app it's looking at and why (see the [usage guide](docs/usage.md#give-the-ai-context-recommended)).
 
 Output lands in `output/my-recording/`. Open `guide.html` in a browser, play `final-video.mp4` in QuickTime.
 
