@@ -32,6 +32,7 @@ class Job:
     rate: int
     threshold: float
     max_frames: int
+    context: str | None = None
     meta: dict = field(default_factory=dict)
     segments: list = field(default_factory=list)
 
@@ -78,7 +79,7 @@ def stage_analyze(job: Job, force: bool) -> None:
         return
     analyze_mod.analyze(
         job.video, manifest, job.work / "frames", job.meta["duration"],
-        job.model, job.steps_path,
+        job.model, job.steps_path, context=job.context,
     )
 
 
@@ -134,6 +135,10 @@ def main() -> None:
     parser.add_argument("--model", default="claude-opus-5",
                         help="Claude model for analysis (default: claude-opus-5; "
                              "claude-haiku-4-5 is ~5x cheaper)")
+    parser.add_argument("--context", metavar="TEXT",
+                        help="tell the AI what the recording shows, e.g. "
+                             "\"Our WooCommerce refund process on the staging site\" — "
+                             "greatly improves step titles and narration")
     parser.add_argument("--from", dest="from_stage", choices=STAGES, metavar="STAGE",
                         help=f"force re-run from this stage onward ({', '.join(STAGES)})")
     parser.add_argument("--force", action="store_true", help="re-run every stage")
@@ -165,6 +170,7 @@ def main() -> None:
         rate=args.rate,
         threshold=args.threshold,
         max_frames=args.max_frames,
+        context=args.context,
     )
     job.work.mkdir(parents=True, exist_ok=True)
 

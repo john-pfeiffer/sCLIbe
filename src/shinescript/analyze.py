@@ -91,6 +91,7 @@ def analyze(
     duration: float,
     model: str,
     steps_path: Path,
+    context: str | None = None,
 ) -> dict:
     if not os.environ.get("ANTHROPIC_API_KEY"):
         sys.exit(
@@ -100,6 +101,11 @@ def analyze(
     import anthropic
 
     content: list[dict] = []
+    if context:
+        content.append({
+            "type": "text",
+            "text": f"Context from the recording's author about what this shows:\n{context}",
+        })
     for f in manifest:
         data = base64.standard_b64encode((frames_dir / f["file"]).read_bytes()).decode()
         content.append({"type": "text", "text": f"Frame at t={f['timestamp']:.1f}s:"})
@@ -140,6 +146,7 @@ def analyze(
             "frames_hash": frames_hash(manifest),
             "video": video.name,
             "duration": duration,
+            "context": context,
         },
         **result.model_dump(),
     }

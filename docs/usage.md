@@ -86,6 +86,7 @@ shine VIDEO [flags]
 | Flag | Default | What it does |
 |---|---|---|
 | `--model NAME` | `claude-opus-5` | Claude model for analysis. `claude-haiku-4-5` is ~5× cheaper and fine for straightforward UIs; use the default for complex or subtle processes. |
+| `--context "TEXT"` | — | Tell the AI what the recording shows. One or two sentences of business context dramatically improves step titles, descriptions, and narration — the AI otherwise has to guess from pixels alone. |
 | `--no-video` | off | Written guide only — skips cutting, narration, and the final video |
 | `--from STAGE` | — | Force a rerun from this stage onward: `probe`, `frames`, `analyze`, `doc`, `video`, `narrate`. Everything before it uses cache. |
 | `--force` | off | Redo every stage, **including the paid analysis** |
@@ -95,6 +96,17 @@ shine VIDEO [flags]
 | `--max-frames N` | `60` | Hard cap on frames sent to the API (cost control). Longer videos get thinned to fit. |
 | `-o DIR` | `./output` | Output root directory |
 | `-v` | off | Verbose logging (shows every ffmpeg command) |
+
+### Give the AI context (recommended)
+
+Without context, the AI only sees pixels — it has to guess what app you're in and why. A sentence or two fixes that:
+
+```bash
+shine rec.mov --context "Our monthly invoice run in QuickBooks. The operator is \
+an accountant; the popup at the end is the confirmation email preview."
+```
+
+Good context mentions: the app/site, the business purpose, who the guide is for, and anything on screen that would otherwise look confusing. The context is saved into `steps.json` so you can see what a past run was told. Changing `--context` alone doesn't invalidate a cached analysis — add `--from analyze` to redo it (paid call).
 
 ### Common invocations
 
