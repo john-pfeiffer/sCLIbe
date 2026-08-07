@@ -7,8 +7,13 @@ from .util import log, run_ffmpeg
 
 SEGMENT_PAD = 0.25  # breathing room around each step's range
 
+# All video encodes share these args, including constant 30fps and a fixed track
+# timescale — screen recordings are variable-frame-rate (QuickTime especially), and
+# concat with stream copy silently corrupts timestamps unless every part matches.
+FPS = 30
 ENCODE_ARGS = [
     "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+    "-r", str(FPS), "-video_track_timescale", "15360",
 ]
 
 
@@ -61,7 +66,7 @@ def cut_segments(
 
 
 def make_title_card(
-    title: str, subtitle: str, width: int, height: int, fps: float,
+    title: str, subtitle: str, width: int, height: int,
     seconds: float, style: Style, workdir: Path,
 ) -> Path:
     """Silent intro card matching the segments' encoding, for concat compatibility."""
@@ -74,7 +79,7 @@ def make_title_card(
     out = workdir / "title-card.mp4"
     run_ffmpeg([
         "-f", "lavfi",
-        "-i", f"color=c={ffcolor(style.accent)}:s={width}x{height}:d={seconds:.2f}:r={fps:g}",
+        "-i", f"color=c={ffcolor(style.accent)}:s={width}x{height}:d={seconds:.2f}:r={FPS}",
         "-vf", (
             f"drawtext=textfile='{title_file}':font='{style.font}':fontcolor=white"
             f":fontsize={title_size}:x=(w-text_w)/2:y=h*0.42-text_h/2,"

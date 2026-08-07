@@ -82,7 +82,7 @@ def narrate(
         card = make_title_card(
             steps_data["process_title"],
             f"{n} step{'s' if n != 1 else ''}",
-            width, height, meta["fps"] or 30, TITLE_CARD_SECONDS, style, workdir,
+            width, height, TITLE_CARD_SECONDS, style, workdir,
         )
         intro_aiff = audio_dir / "intro.aiff"
         tts(steps_data["process_summary"], intro_aiff, voice, rate)
