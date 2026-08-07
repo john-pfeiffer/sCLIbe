@@ -38,10 +38,10 @@ The manifest (`work/frames.json`) records each frame's timestamp and detection s
 
 ### 3. analyze (`analyze.py`) — the paid stage
 
-One request to the Anthropic API:
+One request to the configured vision model — Anthropic (`claude-*`), OpenAI (`gpt-*`), or xAI (`grok-*`), inferred from the model name; the request shape below is per provider but the pipeline is identical:
 
 - **Content**: an optional author-supplied context block (`--context`), then the frames as base64 images, each preceded by a `Frame at t=41.2s:` label, followed by the task instructions.
-- **Structured output**: the request uses `client.messages.parse()` with a Pydantic schema (`StepList`), so the API *guarantees* the response is valid JSON matching the schema — there is no fragile text parsing.
+- **Structured output**: every provider is called with a schema-enforced parse (`messages.parse` on Anthropic, `chat.completions.parse` on OpenAI/xAI) against the Pydantic `StepList`, so the response is *guaranteed* valid JSON matching the schema — there is no fragile text parsing.
 - **The prompt asks for**: one step per meaningful user action (5–15 for a typical recording); non-overlapping time ranges that exclude idle time (that's what defines "dead time" for the video cut); a `key_frame_time` matching one of the provided frames; and a narration script sized to ~2.5 words/second of the step's duration so it roughly fits the segment.
 
 The raw model output then goes through deterministic cleanup in `sanitize()`: clamp times to the video, sort steps, split overlapping ranges at their midpoint, snap `key_frame_time` to the nearest real frame, renumber.

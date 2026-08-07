@@ -131,3 +131,15 @@ def test_merge_settings_rejects_bad_tts():
     from sclibe.config import merge_settings
     with pytest.raises(ValueError):
         merge_settings({"tts": "siri"}, {})
+
+
+def test_provider_for_maps_model_families():
+    import pytest
+    from sclibe.analyze import provider_for
+    assert provider_for("claude-opus-5") == "anthropic"
+    assert provider_for("claude-haiku-4-5") == "anthropic"
+    assert provider_for("gpt-4o") == "openai"
+    assert provider_for("o3-mini") == "openai"
+    assert provider_for("grok-4") == "xai"
+    with pytest.raises(ValueError):
+        provider_for("llama-3")

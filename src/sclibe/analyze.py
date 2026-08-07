@@ -1,4 +1,10 @@
-"""Stage 3: send keyframes to Claude, get back validated steps. The one paid stage."""
+"""Stage 3: send keyframes to a vision model, get back validated steps. The one paid stage.
+
+The analysis provider is chosen by the model name:
+  claude-*  -> Anthropic  (ANTHROPIC_API_KEY)
+  gpt-*/o*  -> OpenAI     (OPENAI_API_KEY, needs `pip install openai`)
+  grok-*    -> xAI        (XAI_API_KEY, needs `pip install openai` — xAI is OpenAI-compatible)
+"""
 
 import base64
 import hashlib
@@ -16,7 +22,30 @@ PRICES = {
     "claude-opus-5": (5.0, 25.0),
     "claude-sonnet-5": (3.0, 15.0),
     "claude-haiku-4-5": (1.0, 5.0),
+    "gpt-4o": (2.5, 10.0),
 }
+
+
+def provider_for(model: str) -> str:
+    """Map a model name to its provider. Pure (tested)."""
+    if model.startswith("claude"):
+        return "anthropic"
+    if model.startswith(("gpt", "o1", "o3", "o4")):
+        return "openai"
+    if model.startswith("grok"):
+        return "xai"
+    raise ValueError(
+        f"can't tell which provider serves model {model!r} — "
+        "use a claude-*, gpt-*, or grok-* model name"
+    )
+
+
+def require_key(env_var: str, hint: str) -> str:
+    value = os.environ.get(env_var)
+    if not value:
+        sys.exit(f"error: {env_var} is not set. {hint}\n"
+                 f'  export {env_var}="..."  (add it to ~/.zshrc)')
+    return value
 
 
 class Step(BaseModel):
@@ -95,6 +124,80 @@ def sanitize(result: StepList, duration: float, frame_times: list[float]) -> Ste
     return result
 
 
+def _call_anthropic(model: str, parts: list[tuple[str, str]], instructions: str) -> tuple:
+    require_key("ANTHROPIC_API_KEY", "Get a key at console.anthropic.com.")
+    import anthropic
+
+    content: list[dict] = []
+    for kind, value in parts:
+        if kind == "text":
+            content.append({"type": "text", "text": value})
+        else:
+            content.append({
+                "type": "image",
+                "source": {"type": "base64", "media_type": "image/jpeg", "data": value},
+            })
+    content.append({"type": "text", "text": instructions})
+    response = anthropic.Anthropic().messages.parse(
+        model=model,
+        max_tokens=16000,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": content}],
+        output_format=StepList,
+    )
+    return response.parsed_output, response.usage.input_tokens, response.usage.output_tokens
+
+
+def _call_openai_compat(
+    model: str, parts: list[tuple[str, str]], instructions: str,
+    env_var: str, hint: str, base_url: str | None,
+) -> tuple:
+    api_key = require_key(env_var, hint)
+    try:
+        from openai import OpenAI
+    except ImportError:
+        sys.exit(
+            f"error: {model} needs the openai package: .venv/bin/pip install openai"
+        )
+    content: list[dict] = []
+    for kind, value in parts:
+        if kind == "text":
+            content.append({"type": "text", "text": value})
+        else:
+            content.append({
+                "type": "image_url",
+                "image_url": {"url": f"data:image/jpeg;base64,{value}"},
+            })
+    content.append({"type": "text", "text": instructions})
+    client = OpenAI(api_key=api_key, base_url=base_url)
+    completion = client.beta.chat.completions.parse(
+        model=model,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": content},
+        ],
+        response_format=StepList,
+    )
+    message = completion.choices[0].message
+    if getattr(message, "refusal", None):
+        sys.exit(f"error: {model} refused the request: {message.refusal}")
+    usage = completion.usage
+    return message.parsed, usage.prompt_tokens, usage.completion_tokens
+
+
+CALLERS = {
+    "anthropic": lambda model, parts, instructions: _call_anthropic(model, parts, instructions),
+    "openai": lambda model, parts, instructions: _call_openai_compat(
+        model, parts, instructions,
+        "OPENAI_API_KEY", "Get a key at platform.openai.com.", None,
+    ),
+    "xai": lambda model, parts, instructions: _call_openai_compat(
+        model, parts, instructions,
+        "XAI_API_KEY", "Get a key at console.x.ai.", "https://api.x.ai/v1",
+    ),
+}
+
+
 def analyze(
     video: Path,
     manifest: list[dict],
@@ -104,52 +207,35 @@ def analyze(
     steps_path: Path,
     context: str | None = None,
 ) -> dict:
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        sys.exit(
-            "error: ANTHROPIC_API_KEY is not set. Get a key at console.anthropic.com and\n"
-            '  export ANTHROPIC_API_KEY="sk-ant-..."  (add it to ~/.zshrc)'
-        )
-    import anthropic
+    try:
+        provider = provider_for(model)
+    except ValueError as exc:
+        sys.exit(f"error: {exc}")
 
-    content: list[dict] = []
+    # provider-neutral content: ("text", str) and ("image", base64-jpeg) parts in order
+    parts: list[tuple[str, str]] = []
     if context:
-        content.append({
-            "type": "text",
-            "text": f"Context from the recording's author about what this shows:\n{context}",
-        })
+        parts.append(("text", f"Context from the recording's author about what this shows:\n{context}"))
     for f in manifest:
         data = base64.standard_b64encode((frames_dir / f["file"]).read_bytes()).decode()
-        content.append({"type": "text", "text": f"Frame at t={f['timestamp']:.1f}s:"})
-        content.append({
-            "type": "image",
-            "source": {"type": "base64", "media_type": "image/jpeg", "data": data},
-        })
-    content.append({"type": "text", "text": TASK_INSTRUCTIONS.format(duration=duration)})
+        parts.append(("text", f"Frame at t={f['timestamp']:.1f}s:"))
+        parts.append(("image", data))
+    instructions = TASK_INSTRUCTIONS.format(duration=duration)
 
-    log.info("analyzing %d frames with %s (this is the paid step)...", len(manifest), model)
-    client = anthropic.Anthropic()
-    response = client.messages.parse(
-        model=model,
-        max_tokens=16000,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": content}],
-        output_format=StepList,
+    log.info(
+        "analyzing %d frames with %s via %s (this is the paid step)...",
+        len(manifest), model, provider,
     )
-    result = sanitize(
-        response.parsed_output, duration, [f["timestamp"] for f in manifest]
-    )
+    parsed, tokens_in, tokens_out = CALLERS[provider](model, parts, instructions)
+    result = sanitize(parsed, duration, [f["timestamp"] for f in manifest])
 
-    usage = response.usage
     cost_note = ""
     for prefix, (p_in, p_out) in PRICES.items():
         if model.startswith(prefix):
-            cost = usage.input_tokens / 1e6 * p_in + usage.output_tokens / 1e6 * p_out
+            cost = tokens_in / 1e6 * p_in + tokens_out / 1e6 * p_out
             cost_note = f" ≈ ${cost:.3f}"
             break
-    log.info(
-        "API usage: %d input + %d output tokens%s",
-        usage.input_tokens, usage.output_tokens, cost_note,
-    )
+    log.info("API usage: %d input + %d output tokens%s", tokens_in, tokens_out, cost_note)
 
     data = {
         "_meta": {

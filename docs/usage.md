@@ -100,7 +100,7 @@ sclibe VIDEO [flags]
 
 | Flag | Default | What it does |
 |---|---|---|
-| `--model NAME` | `claude-opus-5` | Claude model for analysis. `claude-haiku-4-5` is ~5× cheaper and fine for straightforward UIs; use the default for complex or subtle processes. |
+| `--model NAME` | `claude-opus-5` | Vision model for analysis — the provider is inferred from the name: `claude-*` (Anthropic), `gpt-*` (OpenAI, e.g. `gpt-4o`), `grok-*` (xAI). `claude-haiku-4-5` is ~5× cheaper than the default and fine for straightforward UIs. |
 | `--context "TEXT"` | *prompted* | Tell the AI what the recording shows. If omitted, sclibe asks interactively whenever a paid analysis is about to run. |
 | `--no-video` | off | Written guide only — skips cutting, narration, and the final video |
 | `--from STAGE` | — | Force a rerun from this stage onward: `probe`, `frames`, `analyze`, `doc`, `video`, `narrate`. Everything before it uses cache. |
@@ -139,6 +139,17 @@ an accountant; the popup at the end is the confirmation email preview."
 ```
 
 Good context mentions: the app/site, the business purpose, who the guide is for, and anything on screen that would otherwise look confusing. The context is saved into `steps.json` so you can see what a past run was told. The prompt only appears when analysis will actually run — cached re-runs and non-interactive shells never ask. Changing context alone doesn't invalidate a cached analysis — add `--from analyze` to redo it (paid call).
+
+### Providers at a glance
+
+Both AI surfaces are pluggable, and both are just config keys:
+
+| Surface | Config key | Options | Needs |
+|---|---|---|---|
+| **Analysis** (watches the frames, writes the steps) | `model` | `claude-*` (default `claude-opus-5`) / `gpt-*` e.g. `gpt-4o` / `grok-*` e.g. `grok-4` | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` + `pip install openai` / `XAI_API_KEY` + `pip install openai` |
+| **Voice** (narration) | `tts` + `voice` | `edge` (free, default) / `say` (offline) / `openai` (~$0.015/min) / `elevenlabs` (best) | nothing / nothing / `OPENAI_API_KEY` + `pip install openai` / `ELEVENLABS_API_KEY` |
+
+Pick them per-run with `--model` / `--tts` / `--voice`, or pin them in `sclibe.json` (below). Note: Cursor is an IDE, not an API service — it can't be used as an analysis provider.
 
 ### Persistent settings: `sclibe.json`
 
