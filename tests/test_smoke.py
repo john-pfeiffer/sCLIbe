@@ -157,3 +157,14 @@ def test_resolve_voice_expands_roster_names():
     # a non-roster voice passes through untouched
     out2 = merge_settings({"voice": "en-US-EmmaMultilingualNeural"}, config)
     assert out2["voice"] == "en-US-EmmaMultilingualNeural"
+
+
+def test_stale_reason_detects_changes():
+    from sclibe.cache import stale_reason
+    fp = {"voice": "narrator", "tts": "elevenlabs"}
+    assert stale_reason(fp, dict(fp), [100.0], [50.0]) is None            # clean cache
+    assert stale_reason(None, fp, [100.0], [50.0]) is None                # pre-tracking: trust
+    r = stale_reason({"voice": "old", "tts": "elevenlabs"}, fp, [100.0], [50.0])
+    assert r == "settings changed (voice)"
+    assert stale_reason(fp, dict(fp), [100.0], [200.0]) == "inputs changed"  # edited steps.json
+    assert stale_reason(None, fp, [100.0], [200.0]) == "inputs changed"       # mtime wins even pre-tracking

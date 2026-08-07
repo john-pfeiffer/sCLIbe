@@ -84,13 +84,13 @@ The AI call is checkpointed in `steps.json`. Open it in any editor — each step
 }
 ```
 
-Edit any `title`, `description`, or `narration` (or nudge the time ranges), then regenerate:
+Edit any `title`, `description`, or `narration` (or nudge the time ranges), then just run it again:
 
 ```bash
-sclibe ~/Desktop/my-recording.mov --from doc
+sclibe ~/Desktop/my-recording.mov
 ```
 
-That reruns the doc, video, and narration stages in seconds — **zero API cost**. This edit-and-rerun loop is the intended workflow: let the AI do the first 90%, polish the words yourself.
+The cache notices `steps.json` changed and rebuilds the doc, video, and narration automatically — **zero API cost**. This edit-and-rerun loop is the intended workflow: let the AI do the first 90%, polish the words yourself.
 
 ## 5. Flags reference
 
@@ -228,11 +228,22 @@ sclibe rec.mov -o ~/Guides                   # put output somewhere else
 
 ## 6. Understanding cache and re-runs
 
-Running the same command twice does almost nothing — every stage sees its output already exists and skips. The rules:
+The cache is automatic — **change something, rerun the same `sclibe` command, and only the affected stages rebuild**:
 
-- `--from STAGE` invalidates that stage and everything after it
-- `--force` invalidates everything
+| You changed | What rebuilds by itself |
+|---|---|
+| `steps.json` (hand-edits) | doc, video, narration |
+| voice / tts / rate | narration only |
+| accent / font / font-scale / banners | video + doc (narration follows) |
+| threshold / max-frames | frame selection (then asks about re-analysis — see below) |
+| nothing | nothing — you get "everything is already up to date" |
+
+The one exception is the **paid** analysis stage: it never re-runs silently. If the model, context, or frame set changed, sclibe tells you what changed and asks before spending money (non-interactive runs keep the cache and warn).
+
+Manual overrides when you want them:
+
+- `--from STAGE` — force a rerun from `probe`, `frames`, `analyze`, `doc`, `video`, or `narrate` onward
+- `--force` — redo every stage, **including the paid analysis**
 - Deleting `output/<name>/` starts completely fresh
-- If you rerun frame extraction (e.g. with a new `--threshold`), the tool notices `steps.json` was built from a *different* frame set and warns you — rerun `--from analyze` if you want the analysis to match
 
-The stage order is: `probe → frames → analyze → doc → video → narrate`. Only `analyze` costs money.
+Only `analyze` costs money; everything else rebuilds free.
