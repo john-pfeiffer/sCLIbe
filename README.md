@@ -14,7 +14,7 @@ It's a self-hosted alternative to tools like Scribe: no subscription, no uploads
 
 ## Quickstart
 
-Already have Homebrew and an Anthropic API key? (If not, start with the [setup guide](docs/setup.md).)
+Already have Homebrew and an analysis API key? (If not, start with the [setup guide](docs/setup.md).)
 
 ```bash
 brew install ffmpeg
@@ -27,7 +27,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."   # add to ~/.zshrc to make it permanent
 sclibe
 ```
 
-That's it — sclibe asks for the recording (drag the file into the terminal) and for a one-sentence description of what it shows, then makes everything. Stable preferences (brand color, font, voice, model) live in an optional `sclibe.json` — set them once with `--save-config` (see the [usage guide](docs/usage.md#persistent-settings-sclibejson)).
+That's it — sclibe asks for the recording (drag the file into the terminal) and for a one-sentence description of what it shows, then makes everything. Stable preferences (brand color, font, voice, model) are set once — see [Configuration](#configuration) below.
 
 Output lands in `output/my-recording/`. Open `guide.html` in a browser, play `final-video.mp4` in QuickTime.
 
@@ -55,7 +55,30 @@ your-recording.mov
 
 Every stage saves its output *and the settings it ran with* — re-runs rebuild only what changed (a new voice rebuilds narration, a new accent rebuilds video and doc, an edited `steps.json` rebuilds everything downstream). The **only paid stage** is `analyze` (one Claude API call), and it never re-runs without asking — so you can iterate on the guide and video as many times as you like without paying again.
 
-Settings live in `sclibe.json` — view and change them with `sclibe config`, and manage saved narration voices (ElevenLabs IDs, neural voices, ...) with `sclibe voices`. Analysis can run on Claude (default), OpenAI (`gpt-*`), or Grok (`grok-*`) models; narration has four voice providers from free to studio-grade.
+## Configuration
+
+All settings live in **one JSON file** — `sclibe.json` in the folder you run from, or `~/.sclibe.json` as the per-user default (`sclibe config path` shows which is active). The file always contains the complete current state, and there are two equivalent ways to change it — commands and hand-edits write the same file:
+
+```bash
+sclibe config                          # show every setting (customized ones marked)
+sclibe config set accent "#0E7C5B"     # change one setting
+sclibe config set model gpt-4o         # switch the analysis provider by model name
+sclibe config edit                     # open the JSON in your editor instead
+```
+
+**Settings:** `model`, `tts`, `voice`, `rate`, `threshold`, `max_frames`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card` — every one also available as a CLI flag for one-off overrides (flags always win).
+
+**Analysis providers** — pick by model name: `claude-*` (Anthropic, default), `gpt-*` (OpenAI), `grok-*` (xAI). One API key for whichever you use.
+
+**Narration voices** — four providers (`edge` free neural default, `say` offline, `openai`, `elevenlabs`), plus a saved-voice roster so you can switch by name:
+
+```bash
+sclibe voices                                        # list saved voices
+sclibe voices add narrator elevenlabs VOICE_ID       # save one under a friendly name
+sclibe voices use narrator                           # make it the narration voice
+```
+
+Full details: [usage guide → config commands, saved voices, providers](docs/usage.md#config-commands).
 
 ## Requirements
 
@@ -67,10 +90,10 @@ Settings live in `sclibe.json` — view and change them with `sclibe config`, an
 
 ```
 src/sclibe/     the pipeline (one module per stage — see docs/how-it-works.md)
-tests/               unit tests for the pure logic (pytest)
-docs/                full documentation
-output/              generated results (gitignored)
-samples/             test videos (gitignored)
+tests/          unit tests for the pure logic (pytest)
+docs/           full documentation
+output/         generated results (gitignored)
+samples/        test videos (gitignored)
 ```
 
 ## Tests
