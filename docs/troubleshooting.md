@@ -44,7 +44,7 @@ echo 'export ANTHROPIC_API_KEY="sk-ant-YOUR-KEY"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-See [setup — step 4](setup.md#4-get-an-anthropic-api-key) for getting a key in the first place.
+See [setup — step 4](setup.md#4-get-an-analysis-api-key-one-of-three) for getting a key in the first place.
 
 ### API errors during analyze
 
