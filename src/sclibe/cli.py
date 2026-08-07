@@ -157,11 +157,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--force", action="store_true", help="re-run every stage")
     parser.add_argument("--no-video", action="store_true",
                         help="generate the written guide only")
-    parser.add_argument("--tts", default=None, choices=["edge", "say", "openai"],
+    parser.add_argument("--tts", default=None,
+                        choices=["edge", "say", "openai", "elevenlabs"],
                         help="narration voice provider: edge = free Microsoft neural voices "
                              "(default, needs internet, auto-falls back to say), "
                              "say = offline macOS voices, openai = premium (~$0.015/min, "
-                             "needs OPENAI_API_KEY)")
+                             "needs OPENAI_API_KEY), elevenlabs = best-in-class "
+                             "(needs ELEVENLABS_API_KEY; --voice takes a voice ID)")
     parser.add_argument("--voice", default=None,
                         help="voice name for the chosen provider (default: a good one per "
                              "provider; edge voices: edge-tts --list-voices, say voices: say -v '?')")

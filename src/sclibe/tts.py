@@ -3,20 +3,25 @@
 - edge   (default): Microsoft neural voices via the edge-tts package. Free, very
          natural, needs internet. Falls back to `say` automatically when offline.
 - say:   macOS built-in. Free, offline, robotic-ish. Enhanced voices help.
-- openai: highest quality, ~$0.015/min, needs OPENAI_API_KEY and `pip install openai`.
+- openai: high quality, ~$0.015/min, needs OPENAI_API_KEY and `pip install openai`.
+- elevenlabs: best-in-class voices, needs ELEVENLABS_API_KEY (free tier ~10 min/month,
+         paid plans from $5/month). `voice` is an ElevenLabs voice ID.
 """
 
 from pathlib import Path
 
 from .util import ToolError, log, run
 
-PROVIDERS = ("edge", "say", "openai")
+PROVIDERS = ("edge", "say", "openai", "elevenlabs")
 
 DEFAULT_VOICES = {
     "edge": "en-US-AndrewMultilingualNeural",
     "say": "Samantha",
     "openai": "onyx",
+    "elevenlabs": "UgBBYS2sOqTuMpoF3BR0",
 }
+
+ELEVENLABS_MODEL = "eleven_multilingual_v2"
 
 BASE_RATE_WPM = 175  # `say` wpm that maps to a provider's normal speed
 
@@ -32,6 +37,8 @@ def synth(text: str, out_base: Path, provider: str, voice: str | None, rate: int
             return _say(text, out_base.with_suffix(".aiff"), DEFAULT_VOICES["say"], rate)
     if provider == "openai":
         return _openai(text, out_base.with_suffix(".mp3"), voice)
+    if provider == "elevenlabs":
+        return _elevenlabs(text, out_base.with_suffix(".mp3"), voice)
     return _say(text, out_base.with_suffix(".aiff"), voice, rate)
 
 
@@ -62,6 +69,39 @@ def _edge(text: str, out: Path, voice: str, rate: int) -> Path:
     asyncio.run(go())
     if not out.exists() or out.stat().st_size == 0:
         raise ToolError("edge TTS produced no audio")
+    return out
+
+
+def _elevenlabs(text: str, out: Path, voice: str) -> Path:
+    """`voice` is an ElevenLabs voice ID (VoiceLab -> voice -> ID)."""
+    import json
+    import os
+    import urllib.error
+    import urllib.request
+
+    key = os.environ.get("ELEVENLABS_API_KEY")
+    if not key:
+        raise ToolError(
+            "the elevenlabs TTS provider needs ELEVENLABS_API_KEY — get one at "
+            "elevenlabs.io (Profile -> API keys) and add it to ~/.zshrc"
+        )
+    request = urllib.request.Request(
+        f"https://api.elevenlabs.io/v1/text-to-speech/{voice}",
+        data=json.dumps({"text": text, "model_id": ELEVENLABS_MODEL}).encode(),
+        headers={
+            "xi-api-key": key,
+            "Content-Type": "application/json",
+            "Accept": "audio/mpeg",
+        },
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            out.write_bytes(response.read())
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode(errors="replace")[:300]
+        raise ToolError(f"ElevenLabs API error {exc.code}: {detail}") from None
+    if not out.exists() or out.stat().st_size == 0:
+        raise ToolError("ElevenLabs returned no audio")
     return out
 
 

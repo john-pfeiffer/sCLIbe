@@ -105,8 +105,8 @@ sclibe VIDEO [flags]
 | `--no-video` | off | Written guide only — skips cutting, narration, and the final video |
 | `--from STAGE` | — | Force a rerun from this stage onward: `probe`, `frames`, `analyze`, `doc`, `video`, `narrate`. Everything before it uses cache. |
 | `--force` | off | Redo every stage, **including the paid analysis** |
-| `--tts NAME` | `edge` | Narration voice provider: `edge` = free Microsoft neural voices (needs internet; auto-falls back to `say` offline), `say` = offline macOS voices, `openai` = premium (~$0.015/min, needs `OPENAI_API_KEY` + `pip install openai`) |
-| `--voice NAME` | *per provider* | Voice for the chosen provider. edge: `edge-tts --list-voices` (default `en-US-AndrewMultilingualNeural`); say: `say -v '?'` (default `Samantha`); openai: e.g. `onyx`, `alloy` |
+| `--tts NAME` | `edge` | Narration voice provider: `edge` = free Microsoft neural voices (needs internet; auto-falls back to `say` offline), `say` = offline macOS voices, `openai` = premium (~$0.015/min, needs `OPENAI_API_KEY` + `pip install openai`), `elevenlabs` = best-in-class (needs `ELEVENLABS_API_KEY`; free tier ~10 min/month, plans from $5/month) |
+| `--voice NAME` | *per provider* | Voice for the chosen provider. edge: `edge-tts --list-voices` (default `en-US-AndrewMultilingualNeural`); say: `say -v '?'` (default `Samantha`); openai: e.g. `onyx`, `alloy`; elevenlabs: a voice ID from your VoiceLab (elevenlabs.io -> Voices -> ID) |
 | `--rate WPM` | `175` | Narration speed in words per minute (175 = each provider's normal speed) |
 | `--accent HEX` | `#2563eb` | Brand color used for the video's step banners and title card, and for headings in `guide.html` |
 | `--font NAME` | `Helvetica Neue` | Font for video text and the HTML guide — any font installed on the Mac (check Font Book for names) |
@@ -154,7 +154,8 @@ sclibe rec.mov --accent "#0E7C5B" --font "Avenir Next" --save-config
 {
   "accent": "#0E7C5B",
   "font": "Avenir Next",
-  "voice": "Samantha (Enhanced)",
+  "tts": "elevenlabs",
+  "voice": "UgBBYS2sOqTuMpoF3BR0",
   "model": "claude-opus-5"
 }
 ```

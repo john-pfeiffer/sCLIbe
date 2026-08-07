@@ -67,7 +67,7 @@ Unless `--no-title-card`: an intro card (process title + step count on the accen
 
 Per step:
 
-1. TTS via the configured provider (`tts.py`): `edge` (free Microsoft neural voices, default, auto-falls back to `say` offline), `say` (offline macOS), or `openai` (premium).
+1. TTS via the configured provider (`tts.py`): `edge` (free Microsoft neural voices, default, auto-falls back to `say` offline), `say` (offline macOS), `openai` (premium), or `elevenlabs` (best-in-class, voice IDs from your VoiceLab).
 2. **Fit policy — narration is never cut off, and stays in sync:**
    - audio shorter than the segment → pad the audio with trailing silence
    - audio longer than the segment → **slow the video down** (up to 2×, `setpts`) so the on-screen action stays under the words describing it; only freeze the last frame for anything beyond that
