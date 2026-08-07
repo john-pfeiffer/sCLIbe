@@ -106,7 +106,7 @@ sclibe VIDEO [flags]
 | `--from STAGE` | — | Force a rerun from this stage onward: `probe`, `frames`, `analyze`, `doc`, `video`, `narrate`. Everything before it uses cache. |
 | `--force` | off | Redo every stage, **including the paid analysis** |
 | `--tts NAME` | `edge` | Narration voice provider: `edge` = free Microsoft neural voices (needs internet; auto-falls back to `say` offline), `say` = offline macOS voices, `openai` = premium (~$0.015/min, needs `OPENAI_API_KEY` + `pip install openai`), `elevenlabs` = best-in-class (needs `ELEVENLABS_API_KEY`; free tier ~10 min/month, plans from $5/month) |
-| `--voice NAME` | *per provider* | Voice for the chosen provider. edge: `edge-tts --list-voices` (default `en-US-AndrewMultilingualNeural`); say: `say -v '?'` (default `Samantha`); openai: e.g. `onyx`, `alloy`; elevenlabs: a voice ID from your VoiceLab (elevenlabs.io -> Voices -> ID) |
+| `--voice NAME` | *per provider* | A saved voice name (see `sclibe voices`) or a provider voice. edge: `edge-tts --list-voices` (default `en-US-AndrewMultilingualNeural`); say: `say -v '?'` (default `Samantha`); openai: e.g. `onyx`, `alloy`; elevenlabs: a voice ID from your VoiceLab |
 | `--rate WPM` | `175` | Narration speed in words per minute (175 = each provider's normal speed) |
 | `--accent HEX` | `#2563eb` | Brand color used for the video's step banners and title card, and for headings in `guide.html` |
 | `--font NAME` | `Helvetica Neue` | Font for video text and the HTML guide — any font installed on the Mac (check Font Book for names) |
@@ -150,6 +150,31 @@ Both AI surfaces are pluggable, and both are just config keys:
 | **Voice** (narration) | `tts` + `voice` | `edge` (free, default) / `say` (offline) / `openai` (~$0.015/min) / `elevenlabs` (best) | nothing / nothing / `OPENAI_API_KEY` + `pip install openai` / `ELEVENLABS_API_KEY` |
 
 Pick them per-run with `--model` / `--tts` / `--voice`, or pin them in `sclibe.json` (below). Note: Cursor is an IDE, not an API service — it can't be used as an analysis provider.
+
+### Config commands
+
+See and change everything without touching JSON:
+
+```bash
+sclibe config                     # show every setting, its value, and where it came from
+sclibe config set accent "#0E7C5B"
+sclibe config set model gpt-4o
+sclibe config edit                # open the config file in your editor
+sclibe config path                # where the config file lives
+```
+
+### Saved voices
+
+Collect narration voices under friendly names and switch with one command:
+
+```bash
+sclibe voices                                       # list saved voices (active one marked)
+sclibe voices add narrator elevenlabs UgBBYS2sOqTuMpoF3BR0
+sclibe voices add backup edge en-US-EmmaMultilingualNeural
+sclibe voices use narrator                          # make it the narration voice
+```
+
+A saved name also works anywhere a voice is accepted: `sclibe rec.mov --voice backup --from narrate`. Each saved voice remembers its provider, so switching voices switches providers automatically.
 
 ### Persistent settings: `sclibe.json`
 

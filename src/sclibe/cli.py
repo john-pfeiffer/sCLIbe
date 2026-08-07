@@ -138,8 +138,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="sclibe",
         description="Turn a screen recording into a step-by-step guide and a narrated video.",
-        epilog="Persistent settings live in sclibe.json (current directory) or ~/.sclibe.json; "
-               "create one with --save-config. CLI flags always win.",
+        epilog="Persistent settings live in sclibe.json (current directory) or ~/.sclibe.json. "
+               "View them with `sclibe config`, change one with `sclibe config set KEY VALUE`, "
+               "manage saved narration voices with `sclibe voices`. CLI flags always win.",
     )
     parser.add_argument("video", type=Path, nargs="?", default=None,
                         help="input screen recording (.mov, .mp4, ...) — "
@@ -233,6 +234,10 @@ def prompt_for_context() -> str | None:
 
 
 def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] in ("config", "voices"):
+        from .config import command
+        return command(sys.argv[1:])
+
     args = build_parser().parse_args()
 
     logging.basicConfig(

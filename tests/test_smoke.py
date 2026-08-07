@@ -143,3 +143,17 @@ def test_provider_for_maps_model_families():
     assert provider_for("grok-4") == "xai"
     with pytest.raises(ValueError):
         provider_for("llama-3")
+
+
+def test_resolve_voice_expands_roster_names():
+    from sclibe.config import merge_settings
+    config = {
+        "voice": "brand",
+        "voices": {"brand": {"tts": "elevenlabs", "voice": "UgBBYS2sOqTuMpoF3BR0"}},
+    }
+    out = merge_settings({}, config)
+    assert out["tts"] == "elevenlabs"          # roster entry sets the provider
+    assert out["voice"] == "UgBBYS2sOqTuMpoF3BR0"  # and the real ID
+    # a non-roster voice passes through untouched
+    out2 = merge_settings({"voice": "en-US-EmmaMultilingualNeural"}, config)
+    assert out2["voice"] == "en-US-EmmaMultilingualNeural"
