@@ -210,28 +210,37 @@ def _voices_use(name: str) -> None:
     print(f"narration voice is now {name!r} ({data['tts']}: {roster[name]['voice']})")
 
 
+def _voices_command(rest: list[str]) -> None:
+    sub = rest[0] if rest else "list"
+    if sub == "list":
+        _voices_list()
+    elif sub == "add" and len(rest) == 4:
+        _voices_add(rest[1], rest[2], rest[3])
+    elif sub in ("use", "set", "select", "switch") and len(rest) == 2:
+        _voices_use(rest[1])
+    else:
+        sys.exit("usage: sclibe voices [list | add NAME PROVIDER VOICE_ID | use NAME]")
+
+
 def command(argv: list[str]) -> None:
-    """Handle `sclibe config ...` and `sclibe voices ...`."""
+    """Handle `sclibe config ...` and `sclibe voices ...` (singular/nested forms too)."""
     cmd, rest = argv[0], argv[1:]
-    if cmd == "config":
-        sub = rest[0] if rest else "show"
-        if sub == "show":
-            _show()
-        elif sub == "set" and len(rest) >= 3:
-            _set(rest[1], " ".join(rest[2:]))
-        elif sub == "edit":
-            _edit()
-        elif sub == "path":
-            print(_active_file())
-        else:
-            sys.exit("usage: sclibe config [show | set KEY VALUE | edit | path]")
-    elif cmd == "voices":
-        sub = rest[0] if rest else "list"
-        if sub == "list":
-            _voices_list()
-        elif sub == "add" and len(rest) == 4:
-            _voices_add(rest[1], rest[2], rest[3])
-        elif sub == "use" and len(rest) == 2:
-            _voices_use(rest[1])
-        else:
-            sys.exit("usage: sclibe voices [list | add NAME PROVIDER VOICE_ID | use NAME]")
+    if cmd in ("voices", "voice"):
+        return _voices_command(rest)
+    # cmd == "config"
+    sub = rest[0] if rest else "show"
+    if sub in ("voices", "voice"):
+        return _voices_command(rest[1:])   # `sclibe config voice use NAME` etc.
+    if sub == "show":
+        _show()
+    elif sub == "set" and len(rest) >= 3:
+        _set(rest[1], " ".join(rest[2:]))
+    elif sub == "edit":
+        _edit()
+    elif sub == "path":
+        print(_active_file())
+    else:
+        sys.exit(
+            "usage: sclibe config [show | set KEY VALUE | edit | path]\n"
+            "       sclibe voices [list | add NAME PROVIDER VOICE_ID | use NAME]"
+        )

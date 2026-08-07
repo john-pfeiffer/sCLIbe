@@ -285,7 +285,7 @@ def prompt_for_context() -> str | None:
 
 
 def main() -> None:
-    if len(sys.argv) > 1 and sys.argv[1] in ("config", "voices"):
+    if len(sys.argv) > 1 and sys.argv[1] in ("config", "voices", "voice"):
         from .config import command
         return command(sys.argv[1:])
 
