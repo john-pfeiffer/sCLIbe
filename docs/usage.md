@@ -178,13 +178,12 @@ A saved name also works anywhere a voice is accepted: `sclibe rec.mov --voice ba
 
 ### Persistent settings: `sclibe.json`
 
-Stable preferences — brand color, font, voice, model — don't belong on every command line. Put them in a config file and forget them:
+Stable preferences — brand color, font, voice, model — don't belong on every command line. They live in one JSON file (`./sclibe.json`, or `~/.sclibe.json` as the per-user fallback), and there are **two equivalent ways to change it — both edit the same file, so they never disagree**:
 
-```bash
-sclibe rec.mov --accent "#0E7C5B" --font "Avenir Next" --save-config
-```
+1. **Commands**: `sclibe config set accent "#0E7C5B"`, `sclibe voices use narrator`, or `--save-config` on any run
+2. **Edit the JSON directly**: `sclibe config edit` (or any editor) — the file always contains the *complete* current state, every setting spelled out, so you can see and change anything in one place
 
-`--save-config` writes the run's effective settings to `./sclibe.json`; every later run picks it up automatically (`~/.sclibe.json` works too, as a per-user fallback). You can also write the file by hand — any subset of keys is fine:
+Command writes rewrite the full file; hand edits are picked up on the next run. `sclibe config` shows the result either way, marking values that differ from the defaults. A partial hand-written file (any subset of keys) also works:
 
 ```json
 {

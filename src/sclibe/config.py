@@ -67,12 +67,15 @@ def merge_settings(cli: dict, config: dict) -> dict:
         raise ValueError(
             f"invalid tts provider {out['tts']!r} — use one of: {', '.join(PROVIDERS)}"
         )
-    return resolve_voice(out)
+    return out
 
 
 def resolve_voice(settings: dict) -> dict:
     """If `voice` names an entry in the saved roster, expand it to that entry's
-    provider + voice ID. Pure (tested)."""
+    provider + voice ID. Applied at run time; the config file keeps the friendly
+    name. Pure (tested)."""
+    from .tts import PROVIDERS
+
     roster = settings.get("voices") or {}
     name = settings.get("voice")
     if name and name in roster:
@@ -80,7 +83,16 @@ def resolve_voice(settings: dict) -> dict:
         settings = dict(settings)
         settings["tts"] = entry.get("tts", settings["tts"])
         settings["voice"] = entry["voice"]
+        if settings["tts"] not in PROVIDERS:
+            raise ValueError(
+                f"saved voice {name!r} has invalid provider {settings['tts']!r}"
+            )
     return settings
+
+
+def materialized(data: dict) -> dict:
+    """The full current state: every setting, explicit. What the config file holds. Pure (tested)."""
+    return {key: data.get(key, DEFAULTS[key]) for key in DEFAULTS}
 
 
 def save_config(settings: dict) -> Path:
@@ -101,7 +113,9 @@ def _read_file(path: Path) -> dict:
 
 
 def _write_file(path: Path, data: dict) -> None:
-    path.write_text(json.dumps(data, indent=2) + "\n")
+    """Every write materializes the FULL state, so the file is always a complete,
+    hand-editable picture of the current configuration."""
+    path.write_text(json.dumps(materialized(data), indent=2) + "\n")
 
 
 def _show() -> None:
@@ -112,9 +126,9 @@ def _show() -> None:
     for key in DEFAULTS:
         if key == "voices":
             continue
-        source = "config" if key in data else "default"
         value = data.get(key, DEFAULTS[key])
-        print(f"  {key:<12} = {value!r:<40} ({source})")
+        marker = "" if value == DEFAULTS[key] else "   (custom)"
+        print(f"  {key:<12} = {value!r}{marker}")
     roster = data.get("voices") or {}
     print(f"\nsaved voices ({len(roster)}):" if roster else "\nsaved voices: none — add one with: sclibe voices add NAME PROVIDER VOICE_ID")
     for name, entry in roster.items():
@@ -126,7 +140,8 @@ def _set(key: str, raw_value: str) -> None:
     if key not in DEFAULTS or key == "voices":
         valid = ", ".join(k for k in sorted(DEFAULTS) if k != "voices")
         sys.exit(f"error: unknown key {key!r} — valid keys: {valid}\n"
-                 "(voices are managed with: sclibe voices add/use)")
+                 "(voices are managed with `sclibe voices add/use`, "
+                 "or edit the voices block in the file directly)")
     try:
         value = json.loads(raw_value)  # numbers, booleans, null
     except json.JSONDecodeError:
@@ -146,8 +161,7 @@ def _edit() -> None:
     import subprocess
 
     path = _active_file()
-    if not path.exists():
-        _write_file(path, {})
+    _write_file(path, _read_file(path))  # materialize full state so every key is visible
     editor = os.environ.get("EDITOR")
     if editor:
         subprocess.run([editor, str(path)])

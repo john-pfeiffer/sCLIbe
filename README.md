@@ -59,9 +59,9 @@ Settings live in `sclibe.json` — view and change them with `sclibe config`, an
 
 ## Requirements
 
-- macOS (uses the built-in `say` command for narration)
-- [Homebrew](https://brew.sh), ffmpeg, Python 3.11+
-- An [Anthropic API key](https://console.anthropic.com)
+- macOS, with [Homebrew](https://brew.sh), ffmpeg, and Python 3.11+
+- An API key for **any one** analysis provider: [Anthropic](https://console.anthropic.com) (default, `claude-*` models), [OpenAI](https://platform.openai.com) (`gpt-*`), or [xAI](https://console.x.ai) (`grok-*`)
+- Narration needs nothing extra: the default voice is free (Microsoft neural voices over the internet, falling back to the built-in macOS `say` offline). Optional premium voices: OpenAI (~$0.015/min) or ElevenLabs (`ELEVENLABS_API_KEY`)
 
 ## Repository layout
 

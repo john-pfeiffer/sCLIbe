@@ -22,7 +22,7 @@ from . import cache
 from . import doc as doc_mod
 from . import frames as frames_mod
 from . import ingest, narrate, video as video_mod
-from .config import DEFAULTS, load_config, merge_settings, save_config
+from .config import DEFAULTS, load_config, merge_settings, resolve_voice, save_config
 from .style import Style, ffcolor
 from .util import ToolError, check_tools, log
 
@@ -330,6 +330,10 @@ def main() -> None:
 
     if args.save_config:
         log.info("saved settings to %s", save_config(settings))
+    try:
+        settings = resolve_voice(settings)  # saved-voice names -> provider + real ID
+    except ValueError as exc:
+        sys.exit(f"error: {exc}")
 
     outdir = Path(settings["output_root"]) / args.video.stem
     from_index = STAGES.index(args.from_stage) if args.from_stage else None

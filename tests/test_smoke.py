@@ -146,17 +146,27 @@ def test_provider_for_maps_model_families():
 
 
 def test_resolve_voice_expands_roster_names():
-    from sclibe.config import merge_settings
+    from sclibe.config import merge_settings, resolve_voice
     config = {
         "voice": "brand",
         "voices": {"brand": {"tts": "elevenlabs", "voice": "UgBBYS2sOqTuMpoF3BR0"}},
     }
-    out = merge_settings({}, config)
-    assert out["tts"] == "elevenlabs"          # roster entry sets the provider
-    assert out["voice"] == "UgBBYS2sOqTuMpoF3BR0"  # and the real ID
+    merged = merge_settings({}, config)
+    assert merged["voice"] == "brand"                  # file/state keeps the friendly name
+    out = resolve_voice(merged)
+    assert out["tts"] == "elevenlabs"                  # run time expands provider
+    assert out["voice"] == "UgBBYS2sOqTuMpoF3BR0"      # and the real ID
     # a non-roster voice passes through untouched
-    out2 = merge_settings({"voice": "en-US-EmmaMultilingualNeural"}, config)
+    out2 = resolve_voice(merge_settings({"voice": "en-US-EmmaMultilingualNeural"}, config))
     assert out2["voice"] == "en-US-EmmaMultilingualNeural"
+
+
+def test_materialized_config_is_complete():
+    from sclibe.config import DEFAULTS, materialized
+    full = materialized({"accent": "#0E7C5B"})
+    assert set(full) == set(DEFAULTS)                  # every key present
+    assert full["accent"] == "#0E7C5B"                 # overrides kept
+    assert full["model"] == DEFAULTS["model"]          # gaps filled with defaults
 
 
 def test_stale_reason_detects_changes():

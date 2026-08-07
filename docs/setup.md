@@ -40,9 +40,11 @@ pip install -e .
 
 The `.venv` is a self-contained Python environment inside the project folder — it keeps sCLIbe's dependencies from touching anything else on your machine. You'll run `source .venv/bin/activate` once per terminal session before using `sclibe`.
 
-## 4. Get an Anthropic API key
+## 4. Get an analysis API key (one of three)
 
-The AI step-extraction uses Claude. You need an API key (this is separate from a Claude.ai chat subscription):
+The AI step-extraction needs an API key for **one** provider — Anthropic (the default), OpenAI (`sclibe config set model gpt-4o`), or xAI (`sclibe config set model grok-4`). The steps below cover Anthropic; for the others, create a key at platform.openai.com or console.x.ai and export it as `OPENAI_API_KEY` / `XAI_API_KEY` instead.
+
+For Anthropic (this is separate from a Claude.ai chat subscription):
 
 1. Go to [console.anthropic.com](https://console.anthropic.com) and sign in / create an account
 2. Add a small amount of billing credit (Settings → Billing) — $5 lasts a long time at ~$0.35/video
