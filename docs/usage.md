@@ -27,6 +27,8 @@ source .venv/bin/activate
 sclibe
 ```
 
+(Or just `sclibe` from anywhere, if you set up the alias from [setup — step 6](setup.md#6-optional-run-sclibe-from-anywhere-recommended).)
+
 That's the whole command. sclibe asks for the two things that change every run:
 
 ```

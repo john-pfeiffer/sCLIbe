@@ -70,7 +70,20 @@ echo ${ANTHROPIC_API_KEY:0:7}   # should print: sk-ant-
 
 If any of these fail, see [troubleshooting](troubleshooting.md).
 
-## 6. Optional: better narration voices (free)
+## 6. Optional: run `sclibe` from anywhere (recommended)
+
+By default you have to `cd` into the project and activate the venv each time. A one-time alias skips that — after this, opening a terminal and typing `sclibe` is the whole thing:
+
+```bash
+echo 'alias sclibe="$HOME/Repos/sCLIbe/.venv/bin/sclibe"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+(Adjust `$HOME/Repos/sCLIbe` to wherever you cloned the repo.)
+
+> **Where output goes with the alias:** `sclibe` writes its `output/` folder — and looks for `sclibe.json` — in whatever directory you run it from. Pick one place to run it consistently (your home folder works well), or keep a `sclibe.json` there and pass `-o` when you want output elsewhere. A `~/.sclibe.json` applies no matter where you run it.
+
+## 7. Optional: better narration voices (free)
 
 The default macOS voices are serviceable; the **Enhanced/Premium** voices are noticeably better and free to download:
 
