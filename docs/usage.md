@@ -24,8 +24,21 @@ Any tool that produces a video file works. The easiest on a Mac is built-in:
 ```bash
 cd sCLIbe
 source .venv/bin/activate
-shine ~/Desktop/my-recording.mov --context "What this recording shows"
+shine
 ```
+
+That's the whole command. shine asks for the two things that change every run:
+
+```
+Paste the path to your screen recording (or drag the file into this window):
+video> ~/Desktop/my-recording.mov
+
+Describe what this recording shows — the app, the business purpose, and who
+the guide is for. This greatly improves the result. (Enter to skip)
+context> Our monthly invoice run in QuickBooks, for new accountants.
+```
+
+Drag the file from Finder straight into the Terminal window — quoted or escaped paths are handled. Everything else (brand color, font, voice, model) comes from your `shine.json` (see below). You can still pass the path and context as arguments for scripting: `shine rec.mov --context "..."`.
 
 You'll see each stage log as it runs. The line to watch:
 
@@ -164,6 +177,7 @@ shine rec.mov --accent "#B45309" --from doc       # also refresh guide.html colo
 ### Common invocations
 
 ```bash
+shine                                       # interactive: asks for the video + context
 shine rec.mov --context "New-hire guide to our invoice workflow in QuickBooks"
 shine rec.mov --model claude-haiku-4-5      # cheap first pass (~$0.07)
 shine rec.mov --no-video                    # just the written guide

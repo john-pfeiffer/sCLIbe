@@ -12,6 +12,7 @@ Context is prompted for interactively when not given via --context.
 import argparse
 import json
 import logging
+import re
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -139,7 +140,9 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="Persistent settings live in shine.json (current directory) or ~/.shine.json; "
                "create one with --save-config. CLI flags always win.",
     )
-    parser.add_argument("video", type=Path, help="input screen recording (.mov, .mp4, ...)")
+    parser.add_argument("video", type=Path, nargs="?", default=None,
+                        help="input screen recording (.mov, .mp4, ...) — "
+                             "if omitted, you'll be asked for it")
     parser.add_argument("-o", "--output-root", type=Path, default=None,
                         help=f"root output directory (default: ./{DEFAULTS['output_root']})")
     parser.add_argument("--model", default=None,
@@ -181,6 +184,31 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def clean_path(raw: str) -> Path:
+    """Normalize a pasted or Finder-dragged path: quotes, backslash escapes, ~. Pure (tested)."""
+    text = raw.strip()
+    if len(text) >= 2 and text[0] == text[-1] and text[0] in ("'", '"'):
+        text = text[1:-1]
+    text = re.sub(r"\\(.)", r"\1", text)  # Terminal drag-drop escapes spaces etc.
+    return Path(text).expanduser()
+
+
+def prompt_for_video() -> Path:
+    print("Paste the path to your screen recording (or drag the file into this window):")
+    while True:
+        try:
+            raw = input("video> ")
+        except (EOFError, KeyboardInterrupt):
+            print()
+            sys.exit("cancelled")
+        if not raw.strip():
+            sys.exit("cancelled")
+        path = clean_path(raw)
+        if path.is_file():
+            return path
+        print(f"not found: {path} — try again (Enter to cancel)")
+
+
 def prompt_for_context() -> str | None:
     """One-line interactive prompt, only used when a paid analysis is about to run."""
     print(
@@ -220,6 +248,10 @@ def main() -> None:
         load_config(),
     )
 
+    if args.video is None:
+        if not sys.stdin.isatty():
+            sys.exit("error: no video given (usage: shine VIDEO)")
+        args.video = prompt_for_video()
     if not args.video.exists():
         sys.exit(f"error: {args.video} not found")
     try:

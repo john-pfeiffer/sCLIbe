@@ -98,3 +98,11 @@ def test_merge_settings_precedence():
     assert out["font"] == "Georgia"       # config beats default
     assert out["banners"] is False        # CLI False is respected, not treated as unset
     assert out["model"] == DEFAULTS["model"]  # untouched keys fall through to defaults
+
+
+def test_clean_path_handles_drag_and_paste_forms():
+    from shinescript.cli import clean_path
+    assert str(clean_path("/tmp/My\\ Recording.mov ")) == "/tmp/My Recording.mov"
+    assert str(clean_path("'/tmp/quoted path.mov'")) == "/tmp/quoted path.mov"
+    assert str(clean_path('"/tmp/dq.mov"')) == "/tmp/dq.mov"
+    assert str(clean_path("~/x.mov")).endswith("/x.mov") and "~" not in str(clean_path("~/x.mov"))
