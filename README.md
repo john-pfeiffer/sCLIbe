@@ -24,10 +24,10 @@ source .venv/bin/activate
 pip install -e .
 export ANTHROPIC_API_KEY="sk-ant-..."   # add to ~/.zshrc to make it permanent
 
-shine ~/Desktop/my-recording.mov --context "What this recording shows and who the guide is for"
+shine ~/Desktop/my-recording.mov
 ```
 
-The `--context` sentence is optional but strongly recommended — it's how the AI knows what app it's looking at and why (see the [usage guide](docs/usage.md#give-the-ai-context-recommended)).
+When the AI analysis is about to run, shine asks you to describe what the recording shows — answering that one prompt is how the AI knows what app it's looking at and why. Stable preferences (brand color, font, voice, model) live in an optional `shine.json` — set them once with `--save-config` (see the [usage guide](docs/usage.md#persistent-settings-shinejson)).
 
 Output lands in `output/my-recording/`. Open `guide.html` in a browser, play `final-video.mp4` in QuickTime.
 

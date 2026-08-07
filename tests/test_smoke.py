@@ -87,3 +87,14 @@ def test_fit_fontsize_shrinks_for_long_titles():
     long = fit_fontsize("A Very Long Process Title That Goes On And On Forever", 1280, 108)
     assert short == 108
     assert 16 <= long < short
+
+
+def test_merge_settings_precedence():
+    from shinescript.config import DEFAULTS, merge_settings
+    cli = {"accent": "#ff0000", "banners": False}          # explicit CLI values
+    config = {"accent": "#00ff00", "font": "Georgia"}       # file values
+    out = merge_settings(cli, config)
+    assert out["accent"] == "#ff0000"     # CLI beats config
+    assert out["font"] == "Georgia"       # config beats default
+    assert out["banners"] is False        # CLI False is respected, not treated as unset
+    assert out["model"] == DEFAULTS["model"]  # untouched keys fall through to defaults

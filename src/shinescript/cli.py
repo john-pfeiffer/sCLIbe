@@ -4,6 +4,9 @@ Pipeline: probe -> frames -> analyze -> doc -> video -> narrate
 Only `analyze` costs money (one Claude API call). Every stage checkpoints its
 output, so re-runs skip finished work; `--from STAGE` forces a stage (and
 everything after it) to rerun — e.g. hand-edit steps.json, then `--from doc`.
+
+Settings resolution: CLI flags > shine.json (cwd, then ~/.shine.json) > defaults.
+Context is prompted for interactively when not given via --context.
 """
 
 import argparse
@@ -17,6 +20,7 @@ from . import analyze as analyze_mod
 from . import doc as doc_mod
 from . import frames as frames_mod
 from . import ingest, narrate, video as video_mod
+from .config import DEFAULTS, load_config, merge_settings, save_config
 from .style import Style, ffcolor
 from .util import ToolError, check_tools, log
 
@@ -126,81 +130,137 @@ RUNNERS = {
 }
 
 
-def main() -> None:
+def build_parser() -> argparse.ArgumentParser:
+    # Config-file-backed options default to None so we can tell "not given on the
+    # CLI" from an explicit value; merge_settings() layers in shine.json + defaults.
     parser = argparse.ArgumentParser(
         prog="shine",
         description="Turn a screen recording into a step-by-step guide and a narrated video.",
+        epilog="Persistent settings live in shine.json (current directory) or ~/.shine.json; "
+               "create one with --save-config. CLI flags always win.",
     )
     parser.add_argument("video", type=Path, help="input screen recording (.mov, .mp4, ...)")
-    parser.add_argument("-o", "--output-root", type=Path, default=Path("output"),
-                        help="root output directory (default: ./output)")
-    parser.add_argument("--model", default="claude-opus-5",
-                        help="Claude model for analysis (default: claude-opus-5; "
+    parser.add_argument("-o", "--output-root", type=Path, default=None,
+                        help=f"root output directory (default: ./{DEFAULTS['output_root']})")
+    parser.add_argument("--model", default=None,
+                        help=f"Claude model for analysis (default: {DEFAULTS['model']}; "
                              "claude-haiku-4-5 is ~5x cheaper)")
     parser.add_argument("--context", metavar="TEXT",
-                        help="tell the AI what the recording shows, e.g. "
-                             "\"Our WooCommerce refund process on the staging site\" — "
-                             "greatly improves step titles and narration")
+                        help="tell the AI what the recording shows — if omitted, you'll be "
+                             "prompted whenever a (paid) analysis is about to run")
     parser.add_argument("--from", dest="from_stage", choices=STAGES, metavar="STAGE",
                         help=f"force re-run from this stage onward ({', '.join(STAGES)})")
     parser.add_argument("--force", action="store_true", help="re-run every stage")
     parser.add_argument("--no-video", action="store_true",
                         help="generate the written guide only")
-    parser.add_argument("--voice", default="Samantha", help="macOS `say` voice (default: Samantha)")
-    parser.add_argument("--rate", type=int, default=175, help="speech rate wpm (default: 175)")
+    parser.add_argument("--voice", default=None,
+                        help=f"macOS `say` voice (default: {DEFAULTS['voice']})")
+    parser.add_argument("--rate", type=int, default=None,
+                        help=f"speech rate wpm (default: {DEFAULTS['rate']})")
     styling = parser.add_argument_group("styling")
-    styling.add_argument("--accent", default="#2563eb", metavar="HEX",
+    styling.add_argument("--accent", default=None, metavar="HEX",
                          help="brand color for banners, title card, and guide.html "
-                              "(default: #2563eb)")
-    styling.add_argument("--font", default="Helvetica Neue", metavar="NAME",
+                              f"(default: {DEFAULTS['accent']})")
+    styling.add_argument("--font", default=None, metavar="NAME",
                          help="font for video text and guide.html — any installed Mac font "
-                              "(default: Helvetica Neue)")
-    styling.add_argument("--font-scale", type=float, default=1.0, metavar="N",
+                              f"(default: {DEFAULTS['font']})")
+    styling.add_argument("--font-scale", type=float, default=None, metavar="N",
                          help="multiplier on rendered text sizes (default: 1.0)")
-    styling.add_argument("--no-banners", action="store_true",
+    styling.add_argument("--no-banners", action="store_true", default=None,
                          help="no step label overlay on video segments")
-    styling.add_argument("--no-title-card", action="store_true",
+    styling.add_argument("--no-title-card", action="store_true", default=None,
                          help="no narrated intro card before step 1")
-    parser.add_argument("--threshold", type=float, default=10.0,
-                        help="scene-change sensitivity, lower = more frames (default: 10)")
-    parser.add_argument("--max-frames", type=int, default=60,
-                        help="cap on frames sent to the API (default: 60)")
+    parser.add_argument("--threshold", type=float, default=None,
+                        help="scene-change sensitivity, lower = more frames "
+                             f"(default: {DEFAULTS['threshold']:g})")
+    parser.add_argument("--max-frames", type=int, default=None,
+                        help=f"cap on frames sent to the API (default: {DEFAULTS['max_frames']})")
+    parser.add_argument("--save-config", action="store_true",
+                        help="write the effective settings to ./shine.json and continue")
     parser.add_argument("-v", "--verbose", action="store_true")
-    args = parser.parse_args()
+    return parser
+
+
+def prompt_for_context() -> str | None:
+    """One-line interactive prompt, only used when a paid analysis is about to run."""
+    print(
+        "\nDescribe what this recording shows — the app, the business purpose, and who\n"
+        "the guide is for. This greatly improves the result. (Enter to skip)"
+    )
+    try:
+        answer = input("context> ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return None
+    return answer or None
+
+
+def main() -> None:
+    args = build_parser().parse_args()
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(message)s",
     )
 
+    settings = merge_settings(
+        {
+            "model": args.model,
+            "voice": args.voice,
+            "rate": args.rate,
+            "threshold": args.threshold,
+            "max_frames": args.max_frames,
+            "output_root": str(args.output_root) if args.output_root else None,
+            "accent": args.accent,
+            "font": args.font,
+            "font_scale": args.font_scale,
+            "banners": False if args.no_banners else None,
+            "title_card": False if args.no_title_card else None,
+        },
+        load_config(),
+    )
+
     if not args.video.exists():
         sys.exit(f"error: {args.video} not found")
     try:
-        ffcolor(args.accent)
+        ffcolor(settings["accent"])
     except ValueError as exc:
         sys.exit(f"error: {exc}")
     check_tools(require_say=not args.no_video)
 
+    if args.save_config:
+        log.info("saved settings to %s", save_config(settings))
+
+    outdir = Path(settings["output_root"]) / args.video.stem
+    from_index = STAGES.index(args.from_stage) if args.from_stage else None
+
+    # Ask for context only when the paid analysis will actually run this time.
+    context = args.context
+    analyze_will_run = args.force or not (outdir / "steps.json").exists() or (
+        from_index is not None and from_index <= STAGES.index("analyze")
+    )
+    if context is None and analyze_will_run and sys.stdin.isatty():
+        context = prompt_for_context()
+
     job = Job(
         video=args.video,
-        outdir=args.output_root / args.video.stem,
-        model=args.model,
-        voice=args.voice,
-        rate=args.rate,
-        threshold=args.threshold,
-        max_frames=args.max_frames,
-        context=args.context,
+        outdir=outdir,
+        model=settings["model"],
+        voice=settings["voice"],
+        rate=settings["rate"],
+        threshold=settings["threshold"],
+        max_frames=settings["max_frames"],
+        context=context,
         style=Style(
-            accent=args.accent,
-            font=args.font,
-            font_scale=args.font_scale,
-            banners=not args.no_banners,
-            title_card=not args.no_title_card,
+            accent=settings["accent"],
+            font=settings["font"],
+            font_scale=settings["font_scale"],
+            banners=settings["banners"],
+            title_card=settings["title_card"],
         ),
     )
     job.work.mkdir(parents=True, exist_ok=True)
 
-    from_index = STAGES.index(args.from_stage) if args.from_stage else None
     try:
         for i, stage in enumerate(STAGES):
             if args.no_video and stage in VIDEO_STAGES:

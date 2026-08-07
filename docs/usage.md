@@ -86,7 +86,7 @@ shine VIDEO [flags]
 | Flag | Default | What it does |
 |---|---|---|
 | `--model NAME` | `claude-opus-5` | Claude model for analysis. `claude-haiku-4-5` is ~5× cheaper and fine for straightforward UIs; use the default for complex or subtle processes. |
-| `--context "TEXT"` | — | Tell the AI what the recording shows. One or two sentences of business context dramatically improves step titles, descriptions, and narration — the AI otherwise has to guess from pixels alone. |
+| `--context "TEXT"` | *prompted* | Tell the AI what the recording shows. If omitted, shine asks interactively whenever a paid analysis is about to run. |
 | `--no-video` | off | Written guide only — skips cutting, narration, and the final video |
 | `--from STAGE` | — | Force a rerun from this stage onward: `probe`, `frames`, `analyze`, `doc`, `video`, `narrate`. Everything before it uses cache. |
 | `--force` | off | Redo every stage, **including the paid analysis** |
@@ -100,18 +100,50 @@ shine VIDEO [flags]
 | `--threshold N` | `10` | Scene-change sensitivity. Lower = more frames captured. Raise it if you get hundreds of frames from a busy screen; lower it (e.g. 6) if steps are being missed. |
 | `--max-frames N` | `60` | Hard cap on frames sent to the API (cost control). Longer videos get thinned to fit. |
 | `-o DIR` / `--output-root DIR` | `./output` | Output root directory |
+| `--save-config` | off | Write this run's effective settings to `./shine.json` for future runs |
 | `-v` / `--verbose` | off | Verbose logging (shows every ffmpeg command) |
+
+All defaults in this table can be overridden persistently via `shine.json` — see below.
 
 ### Give the AI context (recommended)
 
-Without context, the AI only sees pixels — it has to guess what app you're in and why. A sentence or two fixes that:
+Without context, the AI only sees pixels — it has to guess what app you're in and why. **You don't need a flag for this**: whenever a paid analysis is about to run and you didn't pass `--context`, shine asks you interactively:
+
+```
+Describe what this recording shows — the app, the business purpose, and who
+the guide is for. This greatly improves the result. (Enter to skip)
+context> _
+```
+
+You can still pass it on the command line (useful for scripts):
 
 ```bash
 shine rec.mov --context "Our monthly invoice run in QuickBooks. The operator is \
 an accountant; the popup at the end is the confirmation email preview."
 ```
 
-Good context mentions: the app/site, the business purpose, who the guide is for, and anything on screen that would otherwise look confusing. The context is saved into `steps.json` so you can see what a past run was told. Changing `--context` alone doesn't invalidate a cached analysis — add `--from analyze` to redo it (paid call).
+Good context mentions: the app/site, the business purpose, who the guide is for, and anything on screen that would otherwise look confusing. The context is saved into `steps.json` so you can see what a past run was told. The prompt only appears when analysis will actually run — cached re-runs and non-interactive shells never ask. Changing context alone doesn't invalidate a cached analysis — add `--from analyze` to redo it (paid call).
+
+### Persistent settings: `shine.json`
+
+Stable preferences — brand color, font, voice, model — don't belong on every command line. Put them in a config file and forget them:
+
+```bash
+shine rec.mov --accent "#0E7C5B" --font "Avenir Next" --save-config
+```
+
+`--save-config` writes the run's effective settings to `./shine.json`; every later run picks it up automatically (`~/.shine.json` works too, as a per-user fallback). You can also write the file by hand — any subset of keys is fine:
+
+```json
+{
+  "accent": "#0E7C5B",
+  "font": "Avenir Next",
+  "voice": "Samantha (Enhanced)",
+  "model": "claude-opus-5"
+}
+```
+
+Valid keys: `model`, `voice`, `rate`, `threshold`, `max_frames`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card`. Precedence is always **CLI flag > shine.json > built-in default**. Committing a `shine.json` to a shared repo is a nice way to give the whole team the same branding.
 
 ### Styling the video and guide
 

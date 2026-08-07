@@ -122,7 +122,8 @@ Levers: `--max-frames` caps the biggest cost driver; `--model` trades quality fo
 
 | File | Responsibility |
 |---|---|
-| `cli.py` | argparse, stage orchestration, cache/skip logic, the `Job` dataclass |
+| `cli.py` | argparse, stage orchestration, cache/skip logic, context prompt, the `Job` dataclass |
+| `config.py` | `shine.json` loading/validation, `merge_settings` precedence (pure/tested), `--save-config` |
 | `style.py` | `Style` dataclass (accent/font/scale/toggles), `ffcolor`/`fit_fontsize` (pure/tested) |
 | `ingest.py` | stage 1 — probe |
 | `frames.py` | stage 2 — candidate selection (`plan_timestamps` is pure/tested) + extraction |
