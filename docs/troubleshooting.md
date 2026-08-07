@@ -4,7 +4,7 @@ Problems, causes, and fixes — roughly in the order you might hit them.
 
 ## Setup problems
 
-### `command not found: shine`
+### `command not found: sclibe`
 
 The virtual environment isn't active in this terminal:
 
@@ -12,7 +12,7 @@ The virtual environment isn't active in this terminal:
 cd sCLIbe && source .venv/bin/activate
 ```
 
-You need to do this once per terminal session (or invoke it directly: `.venv/bin/shine ...`).
+You need to do this once per terminal session (or invoke it directly: `.venv/bin/sclibe ...`).
 
 ### `error: required tool(s) not found on PATH: ffmpeg`
 
@@ -51,7 +51,7 @@ A failed analyze costs nothing if no response came back, and rerunning skips all
 The scene detector didn't register subtle changes. Lower the threshold and redo:
 
 ```bash
-shine rec.mov --threshold 6 --from frames
+sclibe rec.mov --threshold 6 --from frames
 ```
 
 (`--from frames` also invalidates the later stages, so a fresh analysis will run — that's a new paid call.)
@@ -61,8 +61,8 @@ shine rec.mov --threshold 6 --from frames
 Animated or video-heavy screens trigger constant "scene changes". Raise the threshold, or rely on the cap:
 
 ```bash
-shine rec.mov --threshold 18 --from frames     # less sensitive
-shine rec.mov --max-frames 40 --from frames    # hard cost cap
+sclibe rec.mov --threshold 18 --from frames     # less sensitive
+sclibe rec.mov --max-frames 40 --from frames    # hard cost cap
 ```
 
 You can sanity-check what will be sent before paying: look at `output/<name>/work/frames/` after the frames stage — those JPEGs are exactly what goes to the API.
@@ -72,7 +72,7 @@ You can sanity-check what will be sent before paying: look at `output/<name>/wor
 Edit `key_frame_time` for that step in `steps.json` (pick any timestamp from `work/frames.json`, or any time in the video), then:
 
 ```bash
-shine rec.mov --from doc
+sclibe rec.mov --from doc
 ```
 
 ## Analysis problems
@@ -82,12 +82,12 @@ shine rec.mov --from doc
 You re-extracted frames (new threshold/max-frames) after the analysis ran. The cached analysis still refers to the old frames. If the old analysis is fine, ignore the warning; to redo it against the new frames:
 
 ```bash
-shine rec.mov --from analyze     # paid call
+sclibe rec.mov --from analyze     # paid call
 ```
 
 ### Steps are too coarse / too granular, or descriptions are thin
 
-- **Add `--context` first** — a sentence about the app and business purpose is the biggest quality lever, and it works on any model: `shine rec.mov --context "..." --from analyze` (paid call; check `_meta.context` in `steps.json` to see what a past run was told)
+- **Add `--context` first** — a sentence about the app and business purpose is the biggest quality lever, and it works on any model: `sclibe rec.mov --context "..." --from analyze` (paid call; check `_meta.context` in `steps.json` to see what a past run was told)
 - Try the default Opus model if you used Haiku — quality difference is real on subtle UIs
 - Merge or split steps by hand in `steps.json` (it's just JSON — copy a step object, adjust the time ranges, rerun `--from doc`)
 
@@ -99,14 +99,14 @@ List installed voices and check the exact spelling (names are case-sensitive, En
 
 ```bash
 say -v '?'
-shine rec.mov --from narrate --voice "Ava (Premium)"
+sclibe rec.mov --from narrate --voice "Ava (Premium)"
 ```
 
 Download better voices for free: System Settings → Accessibility → Spoken Content → Manage Voices. Re-voicing is instant and free (`--from narrate`).
 
 ### Video freezes on a frame while narration keeps talking
 
-Working as designed: when a step's narration runs longer than its video segment, the last frame is held so the audio never gets cut off. If it bothers you, shorten that step's `narration` text in `steps.json` (or widen its `start_time`/`end_time`), then `shine rec.mov --from narrate`.
+Working as designed: when a step's narration runs longer than its video segment, the last frame is held so the audio never gets cut off. If it bothers you, shorten that step's `narration` text in `steps.json` (or widen its `start_time`/`end_time`), then `sclibe rec.mov --from narrate`.
 
 ### Chapters don't show up
 

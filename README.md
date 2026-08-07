@@ -1,8 +1,8 @@
-# ShineScript
+# sCLIbe — the CLI Scribe
 
 **Turn a screen recording into process documentation — automatically.**
 
-Record yourself doing a task (QuickTime, Loom, OBS — anything that produces a video file). Run one command. ShineScript uses AI to figure out the steps you performed and produces:
+Record yourself doing a task (QuickTime, Loom, OBS — anything that produces a video file). Run one command. sCLIbe uses AI to figure out the steps you performed and produces:
 
 | Output | What it is |
 |---|---|
@@ -24,10 +24,10 @@ source .venv/bin/activate
 pip install -e .
 export ANTHROPIC_API_KEY="sk-ant-..."   # add to ~/.zshrc to make it permanent
 
-shine
+sclibe
 ```
 
-That's it — shine asks for the recording (drag the file into the terminal) and for a one-sentence description of what it shows, then makes everything. Stable preferences (brand color, font, voice, model) live in an optional `shine.json` — set them once with `--save-config` (see the [usage guide](docs/usage.md#persistent-settings-shinejson)).
+That's it — sclibe asks for the recording (drag the file into the terminal) and for a one-sentence description of what it shows, then makes everything. Stable preferences (brand color, font, voice, model) live in an optional `sclibe.json` — set them once with `--save-config` (see the [usage guide](docs/usage.md#persistent-settings-sclibejson)).
 
 Output lands in `output/my-recording/`. Open `guide.html` in a browser, play `final-video.mp4` in QuickTime.
 
@@ -64,7 +64,7 @@ Every stage saves its output and is skipped on re-runs. The **only paid stage** 
 ## Repository layout
 
 ```
-src/shinescript/     the pipeline (one module per stage — see docs/how-it-works.md)
+src/sclibe/     the pipeline (one module per stage — see docs/how-it-works.md)
 tests/               unit tests for the pure logic (pytest)
 docs/                full documentation
 output/              generated results (gitignored)

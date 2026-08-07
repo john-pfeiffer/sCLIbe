@@ -1,11 +1,11 @@
-"""shine — turn a screen recording into a step-by-step guide and a narrated video.
+"""sclibe (CLI Scribe) — turn a screen recording into a step-by-step guide and a narrated video.
 
 Pipeline: probe -> frames -> analyze -> doc -> video -> narrate
 Only `analyze` costs money (one Claude API call). Every stage checkpoints its
 output, so re-runs skip finished work; `--from STAGE` forces a stage (and
 everything after it) to rerun — e.g. hand-edit steps.json, then `--from doc`.
 
-Settings resolution: CLI flags > shine.json (cwd, then ~/.shine.json) > defaults.
+Settings resolution: CLI flags > sclibe.json (cwd, then ~/.sclibe.json) > defaults.
 Context is prompted for interactively when not given via --context.
 """
 
@@ -133,11 +133,11 @@ RUNNERS = {
 
 def build_parser() -> argparse.ArgumentParser:
     # Config-file-backed options default to None so we can tell "not given on the
-    # CLI" from an explicit value; merge_settings() layers in shine.json + defaults.
+    # CLI" from an explicit value; merge_settings() layers in sclibe.json + defaults.
     parser = argparse.ArgumentParser(
-        prog="shine",
+        prog="sclibe",
         description="Turn a screen recording into a step-by-step guide and a narrated video.",
-        epilog="Persistent settings live in shine.json (current directory) or ~/.shine.json; "
+        epilog="Persistent settings live in sclibe.json (current directory) or ~/.sclibe.json; "
                "create one with --save-config. CLI flags always win.",
     )
     parser.add_argument("video", type=Path, nargs="?", default=None,
@@ -179,7 +179,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max-frames", type=int, default=None,
                         help=f"cap on frames sent to the API (default: {DEFAULTS['max_frames']})")
     parser.add_argument("--save-config", action="store_true",
-                        help="write the effective settings to ./shine.json and continue")
+                        help="write the effective settings to ./sclibe.json and continue")
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser
 
@@ -250,7 +250,7 @@ def main() -> None:
 
     if args.video is None:
         if not sys.stdin.isatty():
-            sys.exit("error: no video given (usage: shine VIDEO)")
+            sys.exit("error: no video given (usage: sclibe VIDEO)")
         args.video = prompt_for_video()
     if not args.video.exists():
         sys.exit(f"error: {args.video} not found")

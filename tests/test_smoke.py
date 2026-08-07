@@ -1,8 +1,8 @@
 """Unit tests for the pure functions — no ffmpeg, no API."""
 
-from shinescript.analyze import Step, StepList, sanitize
-from shinescript.frames import plan_timestamps
-from shinescript.video import chapter_spans, ffmetadata_escape, padded_ranges
+from sclibe.analyze import Step, StepList, sanitize
+from sclibe.frames import plan_timestamps
+from sclibe.video import chapter_spans, ffmetadata_escape, padded_ranges
 
 
 def make_step(n, start, end, key=None):
@@ -68,21 +68,21 @@ def test_padded_ranges_never_overlap():
 
 
 def test_ffcolor_accepts_hash_and_bare_hex():
-    from shinescript.style import ffcolor
+    from sclibe.style import ffcolor
     assert ffcolor("#2563EB") == "0x2563eb"
     assert ffcolor("ff0000") == "0xff0000"
 
 
 def test_ffcolor_rejects_garbage():
     import pytest
-    from shinescript.style import ffcolor
+    from sclibe.style import ffcolor
     for bad in ("blue", "#12345", "#12345g"):
         with pytest.raises(ValueError):
             ffcolor(bad)
 
 
 def test_fit_fontsize_shrinks_for_long_titles():
-    from shinescript.style import fit_fontsize
+    from sclibe.style import fit_fontsize
     short = fit_fontsize("Hi", 1280, 108)
     long = fit_fontsize("A Very Long Process Title That Goes On And On Forever", 1280, 108)
     assert short == 108
@@ -90,7 +90,7 @@ def test_fit_fontsize_shrinks_for_long_titles():
 
 
 def test_merge_settings_precedence():
-    from shinescript.config import DEFAULTS, merge_settings
+    from sclibe.config import DEFAULTS, merge_settings
     cli = {"accent": "#ff0000", "banners": False}          # explicit CLI values
     config = {"accent": "#00ff00", "font": "Georgia"}       # file values
     out = merge_settings(cli, config)
@@ -101,7 +101,7 @@ def test_merge_settings_precedence():
 
 
 def test_clean_path_handles_drag_and_paste_forms():
-    from shinescript.cli import clean_path
+    from sclibe.cli import clean_path
     assert str(clean_path("/tmp/My\\ Recording.mov ")) == "/tmp/My Recording.mov"
     assert str(clean_path("'/tmp/quoted path.mov'")) == "/tmp/quoted path.mov"
     assert str(clean_path('"/tmp/dq.mov"')) == "/tmp/dq.mov"

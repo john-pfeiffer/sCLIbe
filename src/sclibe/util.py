@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 
-log = logging.getLogger("shine")
+log = logging.getLogger("sclibe")
 
 
 class ToolError(RuntimeError):

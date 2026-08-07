@@ -15,7 +15,7 @@ your-recording ─▶│ 1 probe   ffprobe metadata            → meta.json    
                  └──────────────────────────────────────────────────────────┘
 ```
 
-Each stage lives in its own module under `src/shinescript/` and writes a checkpoint artifact. `cli.py` orchestrates: a stage whose artifact exists is skipped unless `--force` or `--from` invalidates it.
+Each stage lives in its own module under `src/sclibe/` and writes a checkpoint artifact. `cli.py` orchestrates: a stage whose artifact exists is skipped unless `--force` or `--from` invalidates it.
 
 ## Stage details
 
@@ -123,7 +123,7 @@ Levers: `--max-frames` caps the biggest cost driver; `--model` trades quality fo
 | File | Responsibility |
 |---|---|
 | `cli.py` | argparse, stage orchestration, cache/skip logic, context prompt, the `Job` dataclass |
-| `config.py` | `shine.json` loading/validation, `merge_settings` precedence (pure/tested), `--save-config` |
+| `config.py` | `sclibe.json` loading/validation, `merge_settings` precedence (pure/tested), `--save-config` |
 | `style.py` | `Style` dataclass (accent/font/scale/toggles), `ffcolor`/`fit_fontsize` (pure/tested) |
 | `ingest.py` | stage 1 — probe |
 | `frames.py` | stage 2 — candidate selection (`plan_timestamps` is pure/tested) + extraction |

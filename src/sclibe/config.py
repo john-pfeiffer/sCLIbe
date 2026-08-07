@@ -1,4 +1,4 @@
-"""Persistent settings: shine.json in the current directory, falling back to ~/.shine.json.
+"""Persistent settings: sclibe.json in the current directory, falling back to ~/.sclibe.json.
 
 CLI flags override the config file; the config file overrides built-in defaults.
 Context is deliberately NOT a config key — it changes per recording, so the CLI
@@ -27,8 +27,8 @@ DEFAULTS = {
 
 
 def config_path() -> Path | None:
-    """First existing config: ./shine.json, then ~/.shine.json."""
-    for candidate in (Path("shine.json"), Path.home() / ".shine.json"):
+    """First existing config: ./sclibe.json, then ~/.sclibe.json."""
+    for candidate in (Path("sclibe.json"), Path.home() / ".sclibe.json"):
         if candidate.exists():
             return candidate
     return None
@@ -62,6 +62,6 @@ def merge_settings(cli: dict, config: dict) -> dict:
 
 
 def save_config(settings: dict) -> Path:
-    path = Path("shine.json")
+    path = Path("sclibe.json")
     path.write_text(json.dumps({k: settings[k] for k in DEFAULTS}, indent=2) + "\n")
     return path

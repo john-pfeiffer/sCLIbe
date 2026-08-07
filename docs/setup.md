@@ -1,8 +1,8 @@
 # Setup
 
-Everything you need to go from a fresh Mac to a working `shine` command. If you already have Homebrew and Python, skip to [step 3](#3-install-shinescript).
+Everything you need to go from a fresh Mac to a working `sclibe` command. If you already have Homebrew and Python, skip to [step 3](#3-install-sclibe).
 
-ShineScript is **macOS-only** — it uses the built-in `say` command for free text-to-speech.
+sCLIbe is **macOS-only** — it uses the built-in `say` command for free text-to-speech.
 
 ## 1. Install Homebrew and ffmpeg
 
@@ -26,7 +26,7 @@ macOS ships an old Python. Install a current one:
 brew install python@3.12
 ```
 
-## 3. Install ShineScript
+## 3. Install sCLIbe
 
 From wherever you keep code:
 
@@ -38,7 +38,7 @@ source .venv/bin/activate
 pip install -e .
 ```
 
-The `.venv` is a self-contained Python environment inside the project folder — it keeps ShineScript's dependencies from touching anything else on your machine. You'll run `source .venv/bin/activate` once per terminal session before using `shine`.
+The `.venv` is a self-contained Python environment inside the project folder — it keeps sCLIbe's dependencies from touching anything else on your machine. You'll run `source .venv/bin/activate` once per terminal session before using `sclibe`.
 
 ## 4. Get an Anthropic API key
 
@@ -62,7 +62,7 @@ source ~/.zshrc
 ```bash
 cd sCLIbe
 source .venv/bin/activate
-shine --help          # should print the usage screen
+sclibe --help          # should print the usage screen
 ffmpeg -version       # should print version info
 say "setup complete"  # you should hear it
 echo ${ANTHROPIC_API_KEY:0:7}   # should print: sk-ant-
@@ -76,7 +76,7 @@ The default macOS voices are serviceable; the **Enhanced/Premium** voices are no
 
 1. System Settings → **Accessibility** → **Spoken Content** → **System Voice** → **Manage Voices…**
 2. Download an Enhanced voice you like (e.g. *Samantha (Enhanced)*, *Ava (Premium)*)
-3. Use it with `shine recording.mov --voice "Ava (Premium)"`
+3. Use it with `sclibe recording.mov --voice "Ava (Premium)"`
 
 List every installed voice with:
 
