@@ -14,6 +14,19 @@ cd sCLIbe && source .venv/bin/activate
 
 You need to do this once per terminal session (or invoke it directly: `.venv/bin/sclibe ...`).
 
+### `bad interpreter: ... no such file or directory` (after moving/renaming the project folder)
+
+Python virtual environments hardcode their absolute path — moving or renaming the project folder breaks the `.venv` inside it. Recreate it (fast, nothing else is lost):
+
+```bash
+cd <project-folder>
+rm -rf .venv
+/opt/homebrew/bin/python3.12 -m venv .venv
+.venv/bin/pip install -e .
+```
+
+If you use the run-from-anywhere alias, also update the path in `~/.zshrc` and `source ~/.zshrc`.
+
 ### `error: required tool(s) not found on PATH: ffmpeg`
 
 ```bash
