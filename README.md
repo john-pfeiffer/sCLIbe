@@ -1,4 +1,4 @@
-# sCLIbe — the CLI Scribe
+# sCLIbe
 
 **Turn a screen recording into process documentation — automatically.**
 
