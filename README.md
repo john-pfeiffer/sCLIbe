@@ -50,10 +50,12 @@ your-recording.mov
   free    free     PAID     free   free    free
                     │
                     ▼
-               steps.json  ←— hand-edit this, then rerun `--from doc` for $0
+               steps.json  ←— hand-edit this and rerun; affected stages rebuild for $0
 ```
 
-Every stage saves its output and is skipped on re-runs. The **only paid stage** is `analyze` (one Claude API call), and its result is checkpointed in `steps.json` — so you can iterate on the guide and video as many times as you like without paying again.
+Every stage saves its output *and the settings it ran with* — re-runs rebuild only what changed (a new voice rebuilds narration, a new accent rebuilds video and doc, an edited `steps.json` rebuilds everything downstream). The **only paid stage** is `analyze` (one Claude API call), and it never re-runs without asking — so you can iterate on the guide and video as many times as you like without paying again.
+
+Settings live in `sclibe.json` — view and change them with `sclibe config`, and manage saved narration voices (ElevenLabs IDs, neural voices, ...) with `sclibe voices`. Analysis can run on Claude (default), OpenAI (`gpt-*`), or Grok (`grok-*`) models; narration has four voice providers from free to studio-grade.
 
 ## Requirements
 

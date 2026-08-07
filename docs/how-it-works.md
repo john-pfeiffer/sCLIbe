@@ -15,7 +15,7 @@ your-recording ─▶│ 1 probe   ffprobe metadata            → meta.json    
                  └──────────────────────────────────────────────────────────┘
 ```
 
-Each stage lives in its own module under `src/sclibe/` and writes a checkpoint artifact. `cli.py` orchestrates: a stage whose artifact exists is skipped unless `--force` or `--from` invalidates it.
+Each stage lives in its own module under `src/sclibe/` and writes a checkpoint artifact. `cli.py` orchestrates; `cache.py` decides reuse: a stage is skipped only when its outputs exist, the settings it was built with (recorded in `work/stagestate.json`) still match, and no input file is newer than the outputs. So editing `steps.json` or changing the voice/style triggers exactly the right rebuilds on a plain rerun. The paid `analyze` stage is special — when its inputs drift it explains what changed and asks before spending money. `--force` and `--from STAGE` override everything.
 
 ## Stage details
 
@@ -102,7 +102,7 @@ Then all narrated segments (title card first, when enabled) are concatenated (co
 }
 ```
 
-Safe to hand-edit: any text field, and the time fields (keep ranges in order and non-overlapping — the video stage clamps but doesn't reorder after your edits). After editing, rerun with `--from doc`.
+Safe to hand-edit: any text field, and the time fields (keep ranges in order and non-overlapping — the video stage clamps but doesn't reorder after your edits). After editing, just rerun — the cache notices and rebuilds doc, video, and narration.
 
 ## Cost math
 
@@ -122,7 +122,8 @@ Levers: `--max-frames` caps the biggest cost driver; `--model` trades quality fo
 
 | File | Responsibility |
 |---|---|
-| `cli.py` | argparse, stage orchestration, cache/skip logic, context prompt, the `Job` dataclass |
+| `cli.py` | argparse, stage orchestration, prompts, the `Job` dataclass |
+| `cache.py` | per-stage fingerprints + input mtime checks (`stale_reason` pure/tested) |
 | `config.py` | `sclibe.json` loading/validation, `merge_settings` precedence (pure/tested), `--save-config` |
 | `style.py` | `Style` dataclass (accent/font/scale/toggles), `ffcolor`/`fit_fontsize` (pure/tested) |
 | `ingest.py` | stage 1 — probe |
