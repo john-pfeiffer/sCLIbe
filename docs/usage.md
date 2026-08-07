@@ -105,8 +105,9 @@ sclibe VIDEO [flags]
 | `--no-video` | off | Written guide only — skips cutting, narration, and the final video |
 | `--from STAGE` | — | Force a rerun from this stage onward: `probe`, `frames`, `analyze`, `doc`, `video`, `narrate`. Everything before it uses cache. |
 | `--force` | off | Redo every stage, **including the paid analysis** |
-| `--voice NAME` | `Samantha` | macOS narration voice (`say -v '?'` lists them; Enhanced voices sound much better — see [setup](setup.md)) |
-| `--rate WPM` | `175` | Narration speed in words per minute |
+| `--tts NAME` | `edge` | Narration voice provider: `edge` = free Microsoft neural voices (needs internet; auto-falls back to `say` offline), `say` = offline macOS voices, `openai` = premium (~$0.015/min, needs `OPENAI_API_KEY` + `pip install openai`) |
+| `--voice NAME` | *per provider* | Voice for the chosen provider. edge: `edge-tts --list-voices` (default `en-US-AndrewMultilingualNeural`); say: `say -v '?'` (default `Samantha`); openai: e.g. `onyx`, `alloy` |
+| `--rate WPM` | `175` | Narration speed in words per minute (175 = each provider's normal speed) |
 | `--accent HEX` | `#2563eb` | Brand color used for the video's step banners and title card, and for headings in `guide.html` |
 | `--font NAME` | `Helvetica Neue` | Font for video text and the HTML guide — any font installed on the Mac (check Font Book for names) |
 | `--font-scale N` | `1.0` | Multiplier on all rendered text sizes (e.g. `1.3` for bigger banners) |
@@ -158,7 +159,7 @@ sclibe rec.mov --accent "#0E7C5B" --font "Avenir Next" --save-config
 }
 ```
 
-Valid keys: `model`, `voice`, `rate`, `threshold`, `max_frames`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card`. Precedence is always **CLI flag > sclibe.json > built-in default**. Committing a `sclibe.json` to a shared repo is a nice way to give the whole team the same branding.
+Valid keys: `model`, `tts`, `voice`, `rate`, `threshold`, `max_frames`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card`. Precedence is always **CLI flag > sclibe.json > built-in default**. Committing a `sclibe.json` to a shared repo is a nice way to give the whole team the same branding.
 
 ### Styling the video and guide
 

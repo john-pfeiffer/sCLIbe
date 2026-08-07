@@ -106,3 +106,28 @@ def test_clean_path_handles_drag_and_paste_forms():
     assert str(clean_path("'/tmp/quoted path.mov'")) == "/tmp/quoted path.mov"
     assert str(clean_path('"/tmp/dq.mov"')) == "/tmp/dq.mov"
     assert str(clean_path("~/x.mov")).endswith("/x.mov") and "~" not in str(clean_path("~/x.mov"))
+
+
+def test_stretch_plan_syncs_video_to_audio():
+    from sclibe.narrate import stretch_plan
+    assert stretch_plan(10.0, 8.0) == (1.0, 0.0)          # audio fits: no change
+    f, fr = stretch_plan(10.0, 15.0)
+    assert f == 1.5 and fr == 0.0                          # moderate: pure slow-mo
+    f, fr = stretch_plan(4.0, 12.0)
+    assert f == 2.0 and abs(fr - 4.0) < 1e-9               # extreme: capped + freeze
+
+
+def test_sanitize_prefers_keyframe_inside_step_range():
+    result = StepList(
+        process_title="p", process_summary="s",
+        steps=[make_step(1, 10.0, 20.0, key=52.0)],        # model picked a frame way outside
+    )
+    out = sanitize(result, duration=60.0, frame_times=[5.0, 15.0, 50.0])
+    assert out.steps[0].key_frame_time == 15.0             # snapped to the in-range frame
+
+
+def test_merge_settings_rejects_bad_tts():
+    import pytest
+    from sclibe.config import merge_settings
+    with pytest.raises(ValueError):
+        merge_settings({"tts": "siri"}, {})

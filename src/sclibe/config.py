@@ -13,7 +13,8 @@ from .util import log
 
 DEFAULTS = {
     "model": "claude-opus-5",
-    "voice": "Samantha",
+    "tts": "edge",       # edge (free neural voices) | say (offline) | openai (premium)
+    "voice": None,       # None = the chosen provider's default voice
     "rate": 175,
     "threshold": 10.0,
     "max_frames": 60,
@@ -58,6 +59,8 @@ def merge_settings(cli: dict, config: dict) -> dict:
     for key, default in DEFAULTS.items():
         cli_value = cli.get(key)
         out[key] = cli_value if cli_value is not None else config.get(key, default)
+    if out["tts"] not in ("edge", "say", "openai"):
+        raise ValueError(f"invalid tts provider {out['tts']!r} — use edge, say, or openai")
     return out
 
 

@@ -50,11 +50,19 @@ A 10-minute recording typically yields 5-15 steps, not 40.
 in order and must not overlap. Time between steps that shows nothing new (idle screens, \
 cursor wandering, waiting for loads) must be excluded from all ranges — it will be cut from \
 the video.
-- key_frame_time must equal the timestamp of one of the provided frames — pick the frame \
-that best illustrates the step.
-- narration is read aloud by text-to-speech over that step's video segment: conversational, \
-present tense, no markdown, no URLs spelled out character by character. Aim for roughly \
-(end_time - start_time) x 2.5 words so it fits the segment.
+- key_frame_time must equal the timestamp of one of the provided frames, and must fall \
+INSIDE that step's start_time..end_time range — pick the frame that best illustrates the step.
+- process_summary is read aloud as the video's intro: one or two short sentences, \
+30 words maximum. State what the guide covers and stop. No step enumeration, no \
+"in this tutorial we will".
+- narration is read aloud OVER that step's video segment, so it must stay in sync with \
+what's on screen: describe only what happens between start_time and end_time, present tense, \
+as if guiding the viewer while they watch. HARD LIMIT: (end_time - start_time) x 2.5 words — \
+narration that runs long forces the video into slow motion. For steps shorter than \
+5 seconds, use one short sentence of at most 8 words (e.g. "Click Remove, and you're done."). \
+Prefer merging a very short step into its neighbor over narrating it separately. The viewer can see the screen: \
+don't restate the obvious, don't give background, no preamble like "In this step". \
+No markdown, no URLs spelled out character by character.
 - Ignore incidental content (notifications, unrelated windows). Never transcribe passwords \
 or other obviously sensitive values.
 """
@@ -72,7 +80,10 @@ def sanitize(result: StepList, duration: float, frame_times: list[float]) -> Ste
         s.start_time = max(0.0, min(s.start_time, duration))
         s.end_time = max(s.start_time + 0.5, min(s.end_time, duration))
         if frame_times:
-            s.key_frame_time = min(frame_times, key=lambda t: abs(t - s.key_frame_time))
+            # snap to a real frame, preferring one inside this step's range
+            in_range = [t for t in frame_times if s.start_time <= t <= s.end_time]
+            pool = in_range or frame_times
+            s.key_frame_time = min(pool, key=lambda t: abs(t - s.key_frame_time))
     for prev, cur in zip(steps, steps[1:]):
         if cur.start_time < prev.end_time:  # overlap: split at the midpoint
             mid = round((cur.start_time + prev.end_time) / 2, 2)

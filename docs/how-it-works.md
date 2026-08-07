@@ -67,10 +67,10 @@ Unless `--no-title-card`: an intro card (process title + step count on the accen
 
 Per step:
 
-1. macOS `say -v VOICE -r RATE -o step.aiff "narration text"` — free, local TTS.
-2. **Fit policy — narration is never cut off:**
+1. TTS via the configured provider (`tts.py`): `edge` (free Microsoft neural voices, default, auto-falls back to `say` offline), `say` (offline macOS), or `openai` (premium).
+2. **Fit policy — narration is never cut off, and stays in sync:**
    - audio shorter than the segment → pad the audio with trailing silence
-   - audio longer than the segment → freeze the segment's last frame until the narration finishes (what a human editor would do)
+   - audio longer than the segment → **slow the video down** (up to 2×, `setpts`) so the on-screen action stays under the words describing it; only freeze the last frame for anything beyond that
 3. Mux audio onto the segment (AAC 48kHz stereo).
 
 Then all narrated segments (title card first, when enabled) are concatenated (concat demuxer, stream copy — all segments share identical encoding parameters), and chapter metadata is attached via an ffmetadata file (`[CHAPTER]` blocks with millisecond offsets) — an "Intro" chapter for the card, then one per step. QuickTime, VLC, and YouTube all read these chapters.
@@ -130,7 +130,8 @@ Levers: `--max-frames` caps the biggest cost driver; `--model` trades quality fo
 | `analyze.py` | stage 3 — Pydantic schema, prompt, API call, `sanitize()` (pure/tested) |
 | `doc.py` | stage 4 — screenshots, markdown, HTML template |
 | `video.py` | stage 5 — `padded_ranges`/`chapter_spans`/`ffmetadata_escape` (pure/tested), cutting, concat, chapters |
-| `narrate.py` | stage 6 — `say`, fit-and-mux, final assembly |
+| `narrate.py` | stage 6 — `stretch_plan` (pure/tested), fit-and-mux, final assembly |
+| `tts.py` | voice providers: edge / say / openai, per-provider default voices |
 | `util.py` | subprocess wrappers for ffmpeg/ffprobe, tool checks |
 
 Design rule: anything with logic worth testing is a pure function (no I/O), covered in `tests/test_smoke.py`; the rest is thin orchestration around `ffmpeg`, `say`, and the API.

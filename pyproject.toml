@@ -8,6 +8,7 @@ dependencies = [
     "pydantic>=2",
     "scenedetect[opencv]>=0.6.3",
     "markdown>=3.5",
+    "edge-tts>=6.1",
 ]
 
 [project.scripts]

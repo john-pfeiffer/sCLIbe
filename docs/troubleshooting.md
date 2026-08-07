@@ -106,20 +106,28 @@ sclibe rec.mov --from analyze     # paid call
 
 ## Video & narration problems
 
-### Voice error, or narration sounds robotic
+### Narration sounds robotic
 
-List installed voices and check the exact spelling (names are case-sensitive, Enhanced voices include the suffix):
+You're probably on the offline `say` provider (the automatic fallback when the free neural voices can't be reached). The default `edge` provider sounds far more natural — check your internet connection and rerun `--from narrate` (free). To browse other neural voices:
 
 ```bash
-say -v '?'
-sclibe rec.mov --from narrate --voice "Ava (Premium)"
+.venv/bin/edge-tts --list-voices | grep en-US
+sclibe rec.mov --from narrate --voice en-US-EmmaMultilingualNeural
 ```
 
-Download better voices for free: System Settings → Accessibility → Spoken Content → Manage Voices. Re-voicing is instant and free (`--from narrate`).
+If you need offline narration to sound better, download Enhanced macOS voices for free (System Settings → Accessibility → Spoken Content → Manage Voices) and use `--tts say --voice "Ava (Premium)"`.
 
-### Video freezes on a frame while narration keeps talking
+### Voice error
 
-Working as designed: when a step's narration runs longer than its video segment, the last frame is held so the audio never gets cut off. If it bothers you, shorten that step's `narration` text in `steps.json` (or widen its `start_time`/`end_time`), then `sclibe rec.mov --from narrate`.
+Voice names are provider-specific and case-sensitive: edge voices come from `edge-tts --list-voices`, `say` voices from `say -v '?'`. Re-voicing is instant and free (`--from narrate`).
+
+### Video goes slow-motion (or holds a frame) while narration keeps talking
+
+Working as designed: when a step's narration runs longer than its video segment, the segment is slowed (up to 2×) so the on-screen action stays in sync with the words, and only freezes on the last frame beyond that. If a step feels draggy, shorten that step's `narration` text in `steps.json` (or widen its `start_time`/`end_time`), then `sclibe rec.mov --from narrate`.
+
+### Narration describes things after the video has moved past them
+
+That's the failure the slow-motion fit exists to prevent — if you still see it, the step's `narration` is probably describing actions from *outside* its `start_time`–`end_time` range. Trim the narration to what happens inside the range (or widen the range), then `--from narrate`.
 
 ### Chapters don't show up
 

@@ -34,7 +34,8 @@ class Job:
     video: Path
     outdir: Path
     model: str
-    voice: str
+    tts: str
+    voice: str | None
     rate: int
     threshold: float
     max_frames: int
@@ -117,7 +118,7 @@ def stage_narrate(job: Job, force: bool) -> None:
         return
     narrate.narrate(
         analyze_mod.load_steps(job.steps_path), job.segments, job.work,
-        final, job.voice, job.rate, job.style, job.meta,
+        final, job.tts, job.voice, job.rate, job.style, job.meta,
     )
 
 
@@ -156,8 +157,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--force", action="store_true", help="re-run every stage")
     parser.add_argument("--no-video", action="store_true",
                         help="generate the written guide only")
+    parser.add_argument("--tts", default=None, choices=["edge", "say", "openai"],
+                        help="narration voice provider: edge = free Microsoft neural voices "
+                             "(default, needs internet, auto-falls back to say), "
+                             "say = offline macOS voices, openai = premium (~$0.015/min, "
+                             "needs OPENAI_API_KEY)")
     parser.add_argument("--voice", default=None,
-                        help=f"macOS `say` voice (default: {DEFAULTS['voice']})")
+                        help="voice name for the chosen provider (default: a good one per "
+                             "provider; edge voices: edge-tts --list-voices, say voices: say -v '?')")
     parser.add_argument("--rate", type=int, default=None,
                         help=f"speech rate wpm (default: {DEFAULTS['rate']})")
     styling = parser.add_argument_group("styling")
@@ -231,29 +238,30 @@ def main() -> None:
         format="%(message)s",
     )
 
-    settings = merge_settings(
-        {
-            "model": args.model,
-            "voice": args.voice,
-            "rate": args.rate,
-            "threshold": args.threshold,
-            "max_frames": args.max_frames,
-            "output_root": str(args.output_root) if args.output_root else None,
-            "accent": args.accent,
-            "font": args.font,
-            "font_scale": args.font_scale,
-            "banners": False if args.no_banners else None,
-            "title_card": False if args.no_title_card else None,
-        },
-        load_config(),
-    )
-
-    # Fail fast on environment problems before asking the user anything.
-    check_tools(require_say=not args.no_video)
     try:
+        settings = merge_settings(
+            {
+                "model": args.model,
+                "tts": args.tts,
+                "voice": args.voice,
+                "rate": args.rate,
+                "threshold": args.threshold,
+                "max_frames": args.max_frames,
+                "output_root": str(args.output_root) if args.output_root else None,
+                "accent": args.accent,
+                "font": args.font,
+                "font_scale": args.font_scale,
+                "banners": False if args.no_banners else None,
+                "title_card": False if args.no_title_card else None,
+            },
+            load_config(),
+        )
         ffcolor(settings["accent"])
     except ValueError as exc:
         sys.exit(f"error: {exc}")
+
+    # Fail fast on environment problems before asking the user anything.
+    check_tools(require_say=not args.no_video)
 
     if args.video is None:
         if not sys.stdin.isatty():
@@ -280,6 +288,7 @@ def main() -> None:
         video=args.video,
         outdir=outdir,
         model=settings["model"],
+        tts=settings["tts"],
         voice=settings["voice"],
         rate=settings["rate"],
         threshold=settings["threshold"],
