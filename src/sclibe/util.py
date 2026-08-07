@@ -5,8 +5,32 @@ import logging
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 log = logging.getLogger("sclibe")
+
+# Resolved absolute paths for external tools, filled in by check_tools(). Falling
+# back to the bare name keeps unit tests and direct module use working.
+TOOL_PATHS: dict[str, str] = {}
+
+# Homebrew's bin dirs are often missing from PATH (e.g. shells without
+# `brew shellenv`) — look there directly so sclibe works regardless.
+FALLBACK_DIRS = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]
+
+
+def find_tool(name: str) -> str | None:
+    found = shutil.which(name)
+    if found:
+        return found
+    for prefix in FALLBACK_DIRS:
+        candidate = Path(prefix) / name
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
+
+def tool(name: str) -> str:
+    return TOOL_PATHS.get(name, name)
 
 
 class ToolError(RuntimeError):
@@ -24,11 +48,11 @@ def run(cmd: list[str]) -> subprocess.CompletedProcess:
 
 
 def run_ffmpeg(args: list[str]) -> None:
-    run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", *[str(a) for a in args]])
+    run([tool("ffmpeg"), "-hide_banner", "-loglevel", "error", "-y", *[str(a) for a in args]])
 
 
 def ffprobe_json(args: list[str]) -> dict:
-    proc = run(["ffprobe", "-v", "error", "-print_format", "json", *[str(a) for a in args]])
+    proc = run([tool("ffprobe"), "-v", "error", "-print_format", "json", *[str(a) for a in args]])
     return json.loads(proc.stdout)
 
 
@@ -44,11 +68,16 @@ def fmt_ts(seconds: float) -> str:
 
 
 def check_tools(require_say: bool = True) -> None:
-    missing = [t for t in ("ffmpeg", "ffprobe") if shutil.which(t) is None]
-    if require_say and shutil.which("say") is None:
-        missing.append("say")
+    needed = ["ffmpeg", "ffprobe"] + (["say"] if require_say else [])
+    missing = []
+    for name in needed:
+        found = find_tool(name)
+        if found:
+            TOOL_PATHS[name] = found
+        else:
+            missing.append(name)
     if missing:
         sys.exit(
-            f"error: required tool(s) not found on PATH: {', '.join(missing)}.\n"
+            f"error: required tool(s) not found: {', '.join(missing)}.\n"
             "Install ffmpeg with: brew install ffmpeg"
         )

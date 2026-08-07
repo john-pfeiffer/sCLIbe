@@ -248,17 +248,19 @@ def main() -> None:
         load_config(),
     )
 
+    # Fail fast on environment problems before asking the user anything.
+    check_tools(require_say=not args.no_video)
+    try:
+        ffcolor(settings["accent"])
+    except ValueError as exc:
+        sys.exit(f"error: {exc}")
+
     if args.video is None:
         if not sys.stdin.isatty():
             sys.exit("error: no video given (usage: sclibe VIDEO)")
         args.video = prompt_for_video()
     if not args.video.exists():
         sys.exit(f"error: {args.video} not found")
-    try:
-        ffcolor(settings["accent"])
-    except ValueError as exc:
-        sys.exit(f"error: {exc}")
-    check_tools(require_say=not args.no_video)
 
     if args.save_config:
         log.info("saved settings to %s", save_config(settings))
