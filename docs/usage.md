@@ -94,32 +94,19 @@ The cache notices `steps.json` changed and rebuilds the doc, video, and narratio
 
 ## 5. Flags reference
 
+The complete list of every flag, command, and environment variable lives in the [command reference](commands.md). The ones you'll reach for day to day:
+
 ```bash
-sclibe VIDEO [flags]
+sclibe                                      # interactive: asks for the video + context
+sclibe rec.mov --context "..."              # scripted run
+sclibe rec.mov --model claude-haiku-4-5     # cheap analysis pass (~$0.07)
+sclibe rec.mov --no-video                   # written guide only
+sclibe rec.mov --voice narrator-alt         # a saved voice (see `sclibe voices`)
+sclibe rec.mov --from narrate               # force the narration stage to rerun
+sclibe rec.mov --force                      # redo everything, including the paid analysis
 ```
 
-| Flag | Default | What it does |
-|---|---|---|
-| `--model NAME` | `claude-opus-5` | Vision model for analysis — the provider is inferred from the name: `claude-*` (Anthropic), `gpt-*` (OpenAI, e.g. `gpt-4o`), `grok-*` (xAI). `claude-haiku-4-5` is ~5× cheaper than the default and fine for straightforward UIs. |
-| `--context "TEXT"` | *prompted* | Tell the AI what the recording shows. If omitted, sclibe asks interactively whenever a paid analysis is about to run. |
-| `--no-video` | off | Written guide only — skips cutting, narration, and the final video |
-| `--from STAGE` | — | Force a rerun from this stage onward: `probe`, `frames`, `analyze`, `doc`, `video`, `narrate`. Everything before it uses cache. |
-| `--force` | off | Redo every stage, **including the paid analysis** |
-| `--tts NAME` | `edge` | Narration voice provider: `edge` = free Microsoft neural voices (needs internet; auto-falls back to `say` offline), `say` = offline macOS voices, `openai` = premium (~$0.015/min, needs `OPENAI_API_KEY` + `pip install openai`), `elevenlabs` = best-in-class (needs `ELEVENLABS_API_KEY`; free tier ~10 min/month, plans from $5/month) |
-| `--voice NAME` | *per provider* | A saved voice name (see `sclibe voices`) or a provider voice. edge: `edge-tts --list-voices` (default `en-US-AndrewMultilingualNeural`); say: `say -v '?'` (default `Samantha`); openai: e.g. `onyx`, `alloy`; elevenlabs: a voice ID from your VoiceLab |
-| `--rate WPM` | `175` | Narration speed in words per minute (175 = each provider's normal speed) |
-| `--accent HEX` | `#2563eb` | Brand color used for the video's step banners and title card, and for headings in `guide.html` |
-| `--font NAME` | `Helvetica Neue` | Font for video text and the HTML guide — any font installed on the Mac (check Font Book for names) |
-| `--font-scale N` | `1.0` | Multiplier on all rendered text sizes (e.g. `1.3` for bigger banners) |
-| `--no-banners` | off | Skip the step-label overlay at the start of each video segment |
-| `--no-title-card` | off | Skip the narrated intro card before step 1 |
-| `--threshold N` | `10` | Scene-change sensitivity. Lower = more frames captured. Raise it if you get hundreds of frames from a busy screen; lower it (e.g. 6) if steps are being missed. |
-| `--max-frames N` | `60` | Hard cap on frames sent to the API (cost control). Longer videos get thinned to fit. |
-| `-o DIR` / `--output-root DIR` | `./output` | Output root directory |
-| `--save-config` | off | Write this run's effective settings to `./sclibe.json` for future runs |
-| `-v` / `--verbose` | off | Verbose logging (shows every ffmpeg command) |
-
-All defaults in this table can be overridden persistently via `sclibe.json` — see below.
+Every flag has a matching [config setting](#persistent-settings-sclibejson); flags win for that one run.
 
 ### Give the AI context (recommended)
 
@@ -211,18 +198,6 @@ Styling is free to change after the fact — it doesn't touch the AI analysis:
 ```bash
 sclibe rec.mov --accent "#B45309" --from video     # restyle banners + card + video ($0)
 sclibe rec.mov --accent "#B45309" --from doc       # also refresh guide.html colors ($0)
-```
-
-### Common invocations
-
-```bash
-sclibe                                       # interactive: asks for the video + context
-sclibe rec.mov --context "New-hire guide to our invoice workflow in QuickBooks"
-sclibe rec.mov --model claude-haiku-4-5      # cheap first pass (~$0.07)
-sclibe rec.mov --no-video                    # just the written guide
-sclibe rec.mov --from narrate --voice "Ava (Premium)" --rate 165   # re-voice only
-sclibe rec.mov --from analyze                # redo the AI analysis (paid) after changing frames
-sclibe rec.mov -o ~/Guides                   # put output somewhere else
 ```
 
 ## 6. Understanding cache and re-runs

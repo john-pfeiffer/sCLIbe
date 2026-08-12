@@ -36,7 +36,8 @@ Output lands in `output/my-recording/`. Open `guide.html` in a browser, play `fi
 | Doc | Read it when... |
 |---|---|
 | [Setup](docs/setup.md) | You're installing on a Mac for the first time (from zero — includes getting an API key) |
-| [Usage guide](docs/usage.md) | You want to record well, understand the output, tweak flags, or edit results |
+| [Usage guide](docs/usage.md) | You want to record well, understand the output, or edit results |
+| [Command reference](docs/commands.md) | You want to see **everything you can do** — every command, subcommand, flag, and env var |
 | [How it works](docs/how-it-works.md) | You want the pipeline internals, the `steps.json` format, or the cost math |
 | [Troubleshooting](docs/troubleshooting.md) | Something errored or the output isn't what you expected |
 
@@ -78,7 +79,7 @@ sclibe voices add narrator elevenlabs VOICE_ID       # save one under a friendly
 sclibe voices use narrator                           # make it the narration voice
 ```
 
-Full details: [usage guide → config commands, saved voices, providers](docs/usage.md#config-commands).
+Every command and flag, in one place: [command reference](docs/commands.md). Task-oriented walkthroughs: [usage guide](docs/usage.md).
 
 ## Requirements
 
