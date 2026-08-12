@@ -37,6 +37,7 @@ Output lands in `output/my-recording/`. Open `guide.html` in a browser, play `fi
 |---|---|
 | [Setup](docs/setup.md) | You're installing on a Mac for the first time (from zero — includes getting an API key) |
 | [Usage guide](docs/usage.md) | You want to record well, understand the output, or edit results |
+| [Configuration](docs/configuration.md) | You want to change a setting — voices, colors, models, providers — and make it stick |
 | [Command reference](docs/commands.md) | You want to see **everything you can do** — every command, subcommand, flag, and env var |
 | [How it works](docs/how-it-works.md) | You want the pipeline internals, the `steps.json` format, or the cost math |
 | [Troubleshooting](docs/troubleshooting.md) | Something errored or the output isn't what you expected |
@@ -58,28 +59,34 @@ Every stage saves its output *and the settings it ran with* — re-runs rebuild 
 
 ## Configuration
 
-All settings live in **one JSON file** — `sclibe.json` in the folder you run from, or `~/.sclibe.json` as the per-user default (`sclibe config path` shows which is active). The file always contains the complete current state, and there are two equivalent ways to change it — commands and hand-edits write the same file:
+sCLIbe works with no setup. Configuration is for the preferences you'd otherwise retype every run — your brand color, your narration voice, which AI model reads the recording.
+
+Everything lives in **one JSON file** (`~/.sclibe.json`, or `sclibe.json` in the folder you run from), and there are two interchangeable ways to change it:
 
 ```bash
-sclibe config                          # show every setting (customized ones marked)
-sclibe config set accent "#0E7C5B"     # change one setting
-sclibe config set model gpt-4o         # switch the analysis provider by model name
-sclibe config edit                     # open the JSON in your editor instead
+sclibe config                          # see every setting and its current value
+sclibe config set accent "#0E7C5B"     # change one
+sclibe config edit                     # or edit the JSON directly
 ```
 
-**Settings:** `model`, `tts`, `voice`, `rate`, `threshold`, `max_frames`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card` — every one also available as a CLI flag for one-off overrides (flags always win).
+What you can configure, at a glance:
 
-**Analysis providers** — pick by model name: `claude-*` (Anthropic, default), `gpt-*` (OpenAI), `grok-*` (xAI). One API key for whichever you use.
+| Area | Settings | Notes |
+|---|---|---|
+| **Analysis** | `model` | `claude-*` (default), `gpt-*`, or `grok-*` — one API key for whichever you pick |
+| **Narration** | `tts`, `voice`, `rate` | Free neural voices by default; `say` offline, OpenAI, or ElevenLabs |
+| **Styling** | `accent`, `font`, `font_scale`, `banners`, `title_card` | Applied to both the video and `guide.html` |
+| **Frames & cost** | `threshold`, `max_frames` | Frames are most of what you pay for |
+| **Output** | `output_root` | Where results are written |
 
-**Narration voices** — four providers (`edge` free neural default, `say` offline, `openai`, `elevenlabs`), plus a saved-voice roster so you can switch by name:
+Save voices under names you'll remember, and switch with one command:
 
 ```bash
-sclibe voices                                        # list saved voices
-sclibe voices add narrator elevenlabs VOICE_ID       # save one under a friendly name
-sclibe voices use narrator                           # make it the narration voice
+sclibe voices add narrator elevenlabs VOICE_ID
+sclibe voices use narrator
 ```
 
-Every command and flag, in one place: [command reference](docs/commands.md). Task-oriented walkthroughs: [usage guide](docs/usage.md).
+**→ [Full configuration guide](docs/configuration.md)** — every setting explained with defaults, both editing methods, all analysis and voice providers with the keys they need, and copy-paste recipes. For flag syntax, see the [command reference](docs/commands.md).
 
 ## Requirements
 

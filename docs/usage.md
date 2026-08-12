@@ -106,7 +106,7 @@ sclibe rec.mov --from narrate               # force the narration stage to rerun
 sclibe rec.mov --force                      # redo everything, including the paid analysis
 ```
 
-Every flag has a matching [config setting](#persistent-settings-sclibejson); flags win for that one run.
+Every flag has a matching [config setting](configuration.md#every-setting); flags win for that one run.
 
 ### Give the AI context (recommended)
 
@@ -127,78 +127,17 @@ an accountant; the popup at the end is the confirmation email preview."
 
 Good context mentions: the app/site, the business purpose, who the guide is for, and anything on screen that would otherwise look confusing. The context is saved into `steps.json` so you can see what a past run was told. The prompt only appears when analysis will actually run — cached re-runs and non-interactive shells never ask. Changing context alone doesn't invalidate a cached analysis — add `--from analyze` to redo it (paid call).
 
-### Providers at a glance
+### Settings that stick
 
-Both AI surfaces are pluggable, and both are just config keys:
-
-| Surface | Config key | Options | Needs |
-|---|---|---|---|
-| **Analysis** (watches the frames, writes the steps) | `model` | `claude-*` (default `claude-opus-5`) / `gpt-*` e.g. `gpt-4o` / `grok-*` e.g. `grok-4` | `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` + `pip install openai` / `XAI_API_KEY` + `pip install openai` |
-| **Voice** (narration) | `tts` + `voice` | `edge` (free, default) / `say` (offline) / `openai` (~$0.015/min) / `elevenlabs` (best) | nothing / nothing / `OPENAI_API_KEY` + `pip install openai` / `ELEVENLABS_API_KEY` |
-
-Pick them per-run with `--model` / `--tts` / `--voice`, or pin them in `sclibe.json` (below). Note: Cursor is an IDE, not an API service — it can't be used as an analysis provider.
-
-### Config commands
-
-See and change everything without touching JSON:
+Anything you'd otherwise retype every run — brand color, font, narration voice, which AI model does the analysis — belongs in your config file instead:
 
 ```bash
-sclibe config                     # show every setting, its value, and where it came from
-sclibe config set accent "#0E7C5B"
-sclibe config set model gpt-4o
-sclibe config edit                # open the config file in your editor
-sclibe config path                # where the config file lives
+sclibe config                          # see every setting
+sclibe config set accent "#0E7C5B"     # change one
+sclibe voices use narrator             # switch narration voice
 ```
 
-### Saved voices
-
-Collect narration voices under friendly names and switch with one command:
-
-```bash
-sclibe voices                                       # list saved voices (active one marked)
-sclibe voices add narrator elevenlabs UgBBYS2sOqTuMpoF3BR0
-sclibe voices add backup edge en-US-EmmaMultilingualNeural
-sclibe voices use narrator                          # make it the narration voice
-```
-
-A saved name also works anywhere a voice is accepted: `sclibe rec.mov --voice backup --from narrate`. Each saved voice remembers its provider, so switching voices switches providers automatically.
-
-### Persistent settings: `sclibe.json`
-
-Stable preferences — brand color, font, voice, model — don't belong on every command line. They live in one JSON file (`./sclibe.json`, or `~/.sclibe.json` as the per-user fallback), and there are **two equivalent ways to change it — both edit the same file, so they never disagree**:
-
-1. **Commands**: `sclibe config set accent "#0E7C5B"`, `sclibe voices use narrator`, or `--save-config` on any run
-2. **Edit the JSON directly**: `sclibe config edit` (or any editor) — the file always contains the *complete* current state, every setting spelled out, so you can see and change anything in one place
-
-Command writes rewrite the full file; hand edits are picked up on the next run. `sclibe config` shows the result either way, marking values that differ from the defaults. A partial hand-written file (any subset of keys) also works:
-
-```json
-{
-  "accent": "#0E7C5B",
-  "font": "Avenir Next",
-  "tts": "elevenlabs",
-  "voice": "UgBBYS2sOqTuMpoF3BR0",
-  "model": "claude-opus-5"
-}
-```
-
-Valid keys: `model`, `tts`, `voice`, `rate`, `threshold`, `max_frames`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card`. Precedence is always **CLI flag > sclibe.json > built-in default**. Committing a `sclibe.json` to a shared repo is a nice way to give the whole team the same branding.
-
-### Styling the video and guide
-
-The final video opens with a **title card** (process title on your accent color, with the summary read as narration) and each step starts with a **lower-third banner** showing its number and title. The same accent color and font style the HTML guide's headings, so docs and video match your brand:
-
-```bash
-sclibe rec.mov --accent "#0E7C5B" --font "Avenir Next"
-sclibe rec.mov --no-title-card --no-banners        # plain video, no overlays
-```
-
-Styling is free to change after the fact — it doesn't touch the AI analysis:
-
-```bash
-sclibe rec.mov --accent "#B45309" --from video     # restyle banners + card + video ($0)
-sclibe rec.mov --accent "#B45309" --from doc       # also refresh guide.html colors ($0)
-```
+The [configuration guide](configuration.md) covers every setting, both editing methods, all analysis and voice providers with the keys they need, and ready-made recipes.
 
 ## 6. Understanding cache and re-runs
 

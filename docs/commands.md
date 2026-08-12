@@ -62,13 +62,13 @@ Settings live in **one JSON file**: `sclibe.json` in the current directory if pr
 | `sclibe config edit` | Open the config file in `$EDITOR` (or TextEdit), materialized with every key visible |
 | `sclibe config path` | Print which config file is active |
 
-Valid keys for `set`: `model`, `tts`, `voice`, `rate`, `threshold`, `max_frames`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card`. Values are parsed as JSON when possible (`175`, `true`, `1.3`), otherwise taken as strings. The nested `voices` roster is managed with `sclibe voices` (or by editing the file).
+Valid keys for `set`: `model`, `tts`, `voice`, `rate`, `threshold`, `max_frames`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card` — each one explained with its default in the [configuration guide](configuration.md#every-setting). Values are parsed as JSON when possible (`175`, `true`, `1.3`), otherwise taken as strings. The nested `voices` roster is managed with `sclibe voices` (or by editing the file).
 
 ---
 
 ## `sclibe voices` — saved narration voices
 
-A roster of voices under friendly names. Each saved voice remembers its provider, so switching voices switches providers too. Saved names also work anywhere `--voice` is accepted.
+A roster of voices under friendly names. Each saved voice remembers its provider, so switching voices switches providers too. Saved names also work anywhere `--voice` is accepted. For the providers themselves and how to find voice names, see the [configuration guide](configuration.md#narration-voices).
 
 | Command | Does |
 |---|---|
