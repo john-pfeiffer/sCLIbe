@@ -221,6 +221,20 @@ def test_merge_settings_validates_timing_keys():
     assert out["title_card_image"] == "/tmp/a.png"     # CLI beats config for new keys too
 
 
+def test_prompt_for_context_captures_multiline_paste(monkeypatch):
+    from sclibe import cli
+    monkeypatch.setattr("builtins.input", lambda _="": "Our invoicing flow in QuickBooks.")
+    monkeypatch.setattr(cli, "_pending_stdin_lines", lambda: ["For new accountants.", "Ends on the email preview."])
+    assert cli.prompt_for_context() == (
+        "Our invoicing flow in QuickBooks.\nFor new accountants.\nEnds on the email preview."
+    )
+    # single-line answer unchanged; empty answer still means skip
+    monkeypatch.setattr(cli, "_pending_stdin_lines", lambda: [])
+    assert cli.prompt_for_context() == "Our invoicing flow in QuickBooks."
+    monkeypatch.setattr("builtins.input", lambda _="": "")
+    assert cli.prompt_for_context() is None
+
+
 def test_prompt_for_title_card_flow(tmp_path, monkeypatch):
     from sclibe.cli import prompt_for_title_card
     from sclibe.style import Style

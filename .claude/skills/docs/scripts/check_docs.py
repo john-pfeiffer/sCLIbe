@@ -34,6 +34,7 @@ STALE = {
     r"freeze-frames the video|freeze the segment's last frame until": "superseded: narration now slows the video first",
     r"then rerun `--from doc`|then `--from doc`": "superseded: the cache rebuilds automatically on a plain rerun",
     r"doesn'?t invalidate a cached analysis": "superseded: a changed context is detected and asked about before re-running",
+    r"interactive prompt is one line only": "superseded: multi-line pastes are captured in full",
 }
 
 ANCHOR_RE = re.compile(r"^#+ (.+)$", re.M)
