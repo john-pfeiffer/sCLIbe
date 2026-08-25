@@ -224,15 +224,26 @@ def test_merge_settings_validates_timing_keys():
 def test_prompt_for_context_captures_multiline_paste(monkeypatch):
     from sclibe import cli
     monkeypatch.setattr("builtins.input", lambda _="": "Our invoicing flow in QuickBooks.")
-    monkeypatch.setattr(cli, "_pending_stdin_lines", lambda: ["For new accountants.", "Ends on the email preview."])
+    # rest of the paste, whose last line has no trailing newline
+    monkeypatch.setattr(cli, "_pending_stdin_text", lambda: "For new accountants.\nEnds on the email preview.")
     assert cli.prompt_for_context() == (
         "Our invoicing flow in QuickBooks.\nFor new accountants.\nEnds on the email preview."
     )
     # single-line answer unchanged; empty answer still means skip
-    monkeypatch.setattr(cli, "_pending_stdin_lines", lambda: [])
+    monkeypatch.setattr(cli, "_pending_stdin_text", lambda: "")
     assert cli.prompt_for_context() == "Our invoicing flow in QuickBooks."
     monkeypatch.setattr("builtins.input", lambda _="": "")
     assert cli.prompt_for_context() is None
+
+
+def test_ask_yn_reasks_on_garbage(monkeypatch):
+    from sclibe.cli import _ask_yn
+    answers = iter(["save your agent.y", "y"])  # a polluted answer, then a clean one
+    monkeypatch.setattr("builtins.input", lambda _="": next(answers))
+    assert _ask_yn("Use an image? ") is True
+    for final, expected in (("n", False), ("", False), ("yes", True)):
+        answers = iter([final])
+        assert _ask_yn("q? ") is expected
 
 
 def test_prompt_for_title_card_flow(tmp_path, monkeypatch):
