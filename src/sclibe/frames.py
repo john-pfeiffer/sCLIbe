@@ -5,15 +5,17 @@ from pathlib import Path
 
 from .util import log, run_ffmpeg
 
-SETTLE_DELAY = 0.7      # sample after a scene change so the UI has settled
-MIN_GAP = 2.0           # minimum spacing between candidate frames
+SETTLE_DELAY = 0.7      # sample after a scene change so the UI has settled (settle_delay setting)
+MIN_GAP = 2.0           # minimum spacing between candidate frames (min_gap setting)
 BACKFILL_GAP = 30.0     # gaps longer than this get interval samples...
-BACKFILL_EVERY = 20.0   # ...at this spacing
+BACKFILL_EVERY = 20.0   # ...at this spacing (safety nets, deliberately not settings)
 SPARSE_INTERVAL = 15.0  # pure interval sampling when detection finds almost nothing
 API_LONG_EDGE = 1568    # keeps each image ~1100-1600 tokens instead of ~4784
 
 
-def detect_candidates(video: Path, duration: float, threshold: float) -> list[tuple[float, float]]:
+def detect_candidates(
+    video: Path, duration: float, threshold: float, settle_delay: float = SETTLE_DELAY
+) -> list[tuple[float, float]]:
     """Return [(timestamp, content_score)] for visually-distinct moments."""
     from scenedetect import SceneManager, StatsManager, open_video
     from scenedetect.detectors import ContentDetector
@@ -33,12 +35,13 @@ def detect_candidates(video: Path, duration: float, threshold: float) -> list[tu
             score = stats.get_metrics(start.get_frames(), ["content_val"])[0] or 0.0
         except Exception:
             score = 0.0
-        candidates.append((min(t + SETTLE_DELAY, duration - 0.1), float(score)))
+        candidates.append((min(t + settle_delay, duration - 0.1), float(score)))
     return candidates
 
 
 def plan_timestamps(
-    candidates: list[tuple[float, float]], duration: float, max_frames: int
+    candidates: list[tuple[float, float]], duration: float, max_frames: int,
+    min_gap: float = MIN_GAP,
 ) -> list[tuple[float, float]]:
     """Merge, backfill, and cap candidates. Pure function (tested)."""
     first = (min(1.0, duration / 2), 1e9)  # huge scores: never dropped by the cap
@@ -47,7 +50,7 @@ def plan_timestamps(
     # enforce minimum gap, keeping the later (more settled) candidate
     merged: list[tuple[float, float]] = []
     for t, score in sorted(candidates):
-        if merged and t - merged[-1][0] < MIN_GAP:
+        if merged and t - merged[-1][0] < min_gap:
             merged[-1] = (t, max(score, merged[-1][1]))
         else:
             merged.append((t, score))
@@ -67,7 +70,7 @@ def plan_timestamps(
         if i + 1 < len(points):
             gap_end = points[i + 1][0]
             fill = t + BACKFILL_EVERY
-            while gap_end - t > BACKFILL_GAP and fill < gap_end - MIN_GAP:
+            while gap_end - t > BACKFILL_GAP and fill < gap_end - min_gap:
                 filled.append((fill, 0.0))
                 fill += BACKFILL_EVERY
 
@@ -80,14 +83,15 @@ def plan_timestamps(
 
 
 def select_and_extract(
-    video: Path, duration: float, work: Path, threshold: float, max_frames: int
+    video: Path, duration: float, work: Path, threshold: float, max_frames: int,
+    settle_delay: float = SETTLE_DELAY, min_gap: float = MIN_GAP,
 ) -> list[dict]:
     frames_dir = work / "frames"
     frames_dir.mkdir(parents=True, exist_ok=True)
 
     log.info("detecting scene changes (threshold=%.1f)...", threshold)
-    candidates = detect_candidates(video, duration, threshold)
-    planned = plan_timestamps(candidates, duration, max_frames)
+    candidates = detect_candidates(video, duration, threshold, settle_delay)
+    planned = plan_timestamps(candidates, duration, max_frames, min_gap)
     log.info("selected %d frames (%d from scene detection)", len(planned), len(candidates))
 
     manifest = []

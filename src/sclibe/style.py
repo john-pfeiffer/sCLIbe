@@ -14,6 +14,24 @@ class Style:
     font_scale: float = 1.0       # multiplier on all rendered text sizes
     banners: bool = True          # lower-third step label at the start of each segment
     title_card: bool = True       # narrated intro card before step 1
+    title_card_image: str | None = None  # card image, letterboxed on the accent color
+    title_card_text: bool = True         # overlay title/subtitle text on the card
+    title_text: str | None = None        # custom card title (else the AI process title)
+    subtitle_text: str | None = None     # custom card subtitle (else "N steps")
+
+
+def title_card_mode(style: Style) -> str:
+    """Which intro card to render: 'off' | 'text' | 'image' | 'image+text'. Pure (tested)."""
+    if not style.title_card:
+        return "off"
+    if style.title_card_image:
+        return "image+text" if style.title_card_text else "image"
+    if not style.title_card_text:
+        raise ValueError(
+            "title card has no image and text is off — "
+            "set title_card_image or use --no-title-card"
+        )
+    return "text"
 
 
 def ffcolor(hex_color: str) -> str:

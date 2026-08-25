@@ -20,12 +20,19 @@ DEFAULTS = {
     "rate": 175,
     "threshold": 10.0,
     "max_frames": 60,
+    "settle_delay": 0.7,   # seconds after a detected change before the screenshot
+    "min_gap": 2.0,        # minimum seconds between screenshots
+    "max_slowdown": 2.0,   # slow-motion cap when narration outruns a segment; 1.0 = freeze only
     "output_root": "output",
     "accent": "#2563eb",
     "font": "Helvetica Neue",
     "font_scale": 1.0,
     "banners": True,
     "title_card": True,
+    "title_card_image": None,  # path to an intro card image; None = accent-color background
+    "title_card_text": True,   # overlay title/subtitle text on the card
+    "title_text": None,        # custom card title; None = the AI-generated process title
+    "subtitle_text": None,     # custom card subtitle; None = "N steps"
 }
 
 
@@ -67,6 +74,12 @@ def merge_settings(cli: dict, config: dict) -> dict:
         raise ValueError(
             f"invalid tts provider {out['tts']!r} — use one of: {', '.join(PROVIDERS)}"
         )
+    if out["settle_delay"] < 0:
+        raise ValueError("settle_delay must be >= 0 seconds")
+    if out["min_gap"] <= 0:
+        raise ValueError("min_gap must be > 0 seconds")
+    if out["max_slowdown"] < 1.0:
+        raise ValueError("max_slowdown must be >= 1.0 (1.0 = never slow the video)")
     return out
 
 
@@ -128,7 +141,7 @@ def _show() -> None:
             continue
         value = data.get(key, DEFAULTS[key])
         marker = "" if value == DEFAULTS[key] else "   (custom)"
-        print(f"  {key:<12} = {value!r}{marker}")
+        print(f"  {key:<16} = {value!r}{marker}")
     roster = data.get("voices") or {}
     print(f"\nsaved voices ({len(roster)}):" if roster else "\nsaved voices: none — add one with: sclibe voices add NAME PROVIDER VOICE_ID")
     for name, entry in roster.items():
