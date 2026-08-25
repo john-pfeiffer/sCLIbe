@@ -74,7 +74,7 @@ What you can configure, at a glance:
 | Area | Settings | Notes |
 |---|---|---|
 | **Analysis** | `model` | `claude-*` (default), `gpt-*`, or `grok-*` — one API key for whichever you pick |
-| **Narration** | `tts`, `voice`, `rate` | Free neural voices by default; `say` offline, OpenAI, or ElevenLabs |
+| **Narration** | `tts`, `voice`, `rate`, `pronunciations` | Free neural voices by default; `say` offline, OpenAI, or ElevenLabs. Respell words the voice gets wrong (`{"Cohrt": "co-hort"}`) — audio only, the written guide keeps the real spelling |
 | **Styling** | `accent`, `font`, `font_scale`, `banners`, `title_card`, `title_card_image`, `title_card_text`, `title_text`, `subtitle_text` | Applied to both the video and `guide.html`; the title card can be text, an image, or both |
 | **Frames & cost** | `threshold`, `max_frames`, `settle_delay`, `min_gap` | Frames are most of what you pay for |
 | **Narration fit** | `max_slowdown` | How much a segment may slow to fit its narration; `1.0` = hold the last frame instead |

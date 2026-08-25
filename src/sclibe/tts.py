@@ -8,6 +8,7 @@
          paid plans from $5/month). `voice` is an ElevenLabs voice ID.
 """
 
+import re
 from pathlib import Path
 
 from .util import ToolError, log, run
@@ -26,8 +27,26 @@ ELEVENLABS_MODEL = "eleven_multilingual_v2"
 BASE_RATE_WPM = 175  # `say` wpm that maps to a provider's normal speed
 
 
-def synth(text: str, out_base: Path, provider: str, voice: str | None, rate: int) -> Path:
+def apply_pronunciations(text: str, pronunciations: dict[str, str]) -> str:
+    """Replace whole-word occurrences (case-insensitive) with their respellings.
+    Longer keys win so "Cohrt CLI" can override a plain "Cohrt" entry. Pure (tested)."""
+    for word in sorted(pronunciations, key=len, reverse=True):
+        pattern = rf"(?<!\w){re.escape(word)}(?!\w)"
+        text = re.sub(pattern, pronunciations[word], text, flags=re.IGNORECASE)
+    return text
+
+
+def synth(
+    text: str,
+    out_base: Path,
+    provider: str,
+    voice: str | None,
+    rate: int,
+    pronunciations: dict[str, str] | None = None,
+) -> Path:
     """Generate speech for `text`; returns the audio file path (extension varies)."""
+    if pronunciations:
+        text = apply_pronunciations(text, pronunciations)
     voice = voice or DEFAULT_VOICES[provider]
     if provider == "edge":
         try:

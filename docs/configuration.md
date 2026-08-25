@@ -73,6 +73,7 @@ The file always contains **every** setting spelled out — not just the ones you
   "voices": {
     "narrator": { "tts": "elevenlabs", "voice": "UgBBYS2sOqTuMpoF3BR0" }
   },
+  "pronunciations": {},
   "rate": 175,
   "threshold": 10.0,
   "max_frames": 60,
@@ -119,6 +120,7 @@ sclibe rec.mov --accent "#0E7C5B" --font "Avenir Next" --save-config
 | `tts` | `edge` | Voice provider: `edge`, `say`, `openai`, or `elevenlabs` — see [Narration voices](#narration-voices) |
 | `voice` | *provider default* | A specific voice, or a name from your [saved voices](#saved-voices) |
 | `voices` | `{}` | Your saved voice roster — managed with `sclibe voices` |
+| `pronunciations` | `{}` | Respellings for words the voice gets wrong, e.g. `{"Cohrt": "co-hort"}` — see [Fixing a mispronounced word](#fixing-a-mispronounced-word) |
 | `rate` | `175` | Speaking speed in words per minute; 175 is each provider's normal pace |
 
 ### Styling — how the video and guide look
@@ -229,6 +231,18 @@ Re-voicing an existing video is free and takes seconds — it reuses the AI anal
 ```bash
 sclibe rec.mov --voice en-US-EmmaMultilingualNeural --from narrate
 ```
+
+### Fixing a mispronounced word
+
+Product names trip up every provider — a voice reads "Cohrt" as *court* when it should be *co-hort*. The `pronunciations` setting maps a word to a phonetic respelling that is spoken instead:
+
+```bash
+sclibe config set pronunciations '{"Cohrt": "co-hort"}'
+```
+
+Only the **audio** changes — the written guide, banners, and chapter titles keep the real spelling. Matching is case-insensitive and whole-word (`Cohrt's` is fixed, `Cohrtified` is left alone), and a longer entry beats a shorter one, so `"Cohrt CLI"` can get its own reading alongside a plain `"Cohrt"`.
+
+Write the respelling the way you'd explain it over the phone — hyphens between syllables, capitals for stress (`"co-HORT"`). If a voice still fights you, try a more literal spelling (`"koh-hort"`). Auditioning is free: edit the entry and rerun with `--from narrate` — only the narration regenerates.
 
 ---
 

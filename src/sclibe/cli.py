@@ -44,6 +44,7 @@ class Job:
     min_gap: float
     max_slowdown: float
     context: str | None = None
+    pronunciations: dict = field(default_factory=dict)
     style: Style = field(default_factory=Style)
     meta: dict = field(default_factory=dict)
     segments: list = field(default_factory=list)
@@ -173,7 +174,7 @@ def stage_narrate(job: Job, force: bool) -> bool:
         "title_card_image": job.style.title_card_image,
         "title_card_text": job.style.title_card_text,
         "title_text": job.style.title_text, "subtitle_text": job.style.subtitle_text,
-        "max_slowdown": job.max_slowdown,
+        "max_slowdown": job.max_slowdown, "pronunciations": job.pronunciations,
     }
     inputs = [job.steps_path, *job.segments]
     if job.style.title_card_image:
@@ -183,7 +184,7 @@ def stage_narrate(job: Job, force: bool) -> bool:
     narrate.narrate(
         analyze_mod.load_steps(job.steps_path), job.segments, job.work,
         final, job.tts, job.voice, job.rate, job.style, job.meta,
-        max_slowdown=job.max_slowdown,
+        max_slowdown=job.max_slowdown, pronunciations=job.pronunciations,
     )
     cache.record(job.work, "narrate", fp)
     return True
@@ -511,6 +512,7 @@ def main() -> None:
         min_gap=settings["min_gap"],
         max_slowdown=settings["max_slowdown"],
         context=context,
+        pronunciations=settings["pronunciations"],
         style=style,
     )
     job.work.mkdir(parents=True, exist_ok=True)

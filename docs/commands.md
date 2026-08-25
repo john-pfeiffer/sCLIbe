@@ -71,7 +71,7 @@ Settings live in **one JSON file**: `sclibe.json` in the current directory if pr
 | `sclibe config edit` | Open the config file in `$EDITOR` (or TextEdit), materialized with every key visible |
 | `sclibe config path` | Print which config file is active |
 
-Valid keys for `set`: `model`, `tts`, `voice`, `rate`, `threshold`, `max_frames`, `settle_delay`, `min_gap`, `max_slowdown`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card`, `title_card_image`, `title_card_text`, `title_text`, `subtitle_text` — each one explained with its default in the [configuration guide](configuration.md#every-setting). Values are parsed as JSON when possible (`175`, `true`, `1.3`), otherwise taken as strings. The nested `voices` roster is managed with `sclibe voices` (or by editing the file).
+Valid keys for `set`: `model`, `tts`, `voice`, `pronunciations`, `rate`, `threshold`, `max_frames`, `settle_delay`, `min_gap`, `max_slowdown`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card`, `title_card_image`, `title_card_text`, `title_text`, `subtitle_text` — each one explained with its default in the [configuration guide](configuration.md#every-setting). Values are parsed as JSON when possible (`175`, `true`, `1.3`), otherwise taken as strings. The nested `voices` roster is managed with `sclibe voices` (or by editing the file).
 
 ---
 

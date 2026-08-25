@@ -83,6 +83,7 @@ def narrate(
     style: Style,
     meta: dict,
     max_slowdown: float = MAX_SLOWDOWN,
+    pronunciations: dict[str, str] | None = None,
 ) -> None:
     audio_dir = workdir / "audio"
     narrated_dir = workdir / "narrated"
@@ -99,7 +100,8 @@ def narrate(
         # synth first: sizing the card to its narration keeps the mux on the
         # cheap stream-copy path (no slowdown, no re-encode of the card)
         intro_audio = synth(
-            steps_data["process_summary"], audio_dir / "intro", tts_provider, voice, rate
+            steps_data["process_summary"], audio_dir / "intro", tts_provider, voice, rate,
+            pronunciations,
         )
         card = make_title_card(
             style.title_text or steps_data["process_title"],
@@ -114,7 +116,10 @@ def narrate(
 
     for step, segment in zip(steps, segments):
         n = step["number"]
-        audio = synth(step["narration"], audio_dir / f"step-{n:02d}", tts_provider, voice, rate)
+        audio = synth(
+            step["narration"], audio_dir / f"step-{n:02d}", tts_provider, voice, rate,
+            pronunciations,
+        )
         out = narrated_dir / f"step-{n:02d}.mp4"
         fit_and_mux(segment, audio, out, max_slowdown)
         narrated_files.append(out)

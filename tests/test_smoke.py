@@ -133,6 +133,27 @@ def test_merge_settings_rejects_bad_tts():
         merge_settings({"tts": "siri"}, {})
 
 
+def test_apply_pronunciations_whole_words_case_insensitive():
+    from sclibe.tts import apply_pronunciations
+    pron = {"Cohrt": "co-hort"}
+    assert apply_pronunciations("Open Cohrt and log in.", pron) == "Open co-hort and log in."
+    assert apply_pronunciations("open cohrt now", pron) == "open co-hort now"
+    assert apply_pronunciations("the Cohrt's dashboard", pron) == "the co-hort's dashboard"
+    assert apply_pronunciations("Cohrtified stays put", pron) == "Cohrtified stays put"
+    long_first = {"Cohrt": "co-hort", "Cohrt CLI": "co-hort see ell eye"}
+    assert apply_pronunciations("run Cohrt CLI", long_first) == "run co-hort see ell eye"
+
+
+def test_merge_settings_validates_pronunciations():
+    import pytest
+    from sclibe.config import merge_settings
+    out = merge_settings({}, {"pronunciations": {"Cohrt": "co-hort"}})
+    assert out["pronunciations"] == {"Cohrt": "co-hort"}
+    for bad in (["Cohrt"], {"Cohrt": 3}, "co-hort"):
+        with pytest.raises(ValueError):
+            merge_settings({}, {"pronunciations": bad})
+
+
 def test_provider_for_maps_model_families():
     import pytest
     from sclibe.analyze import provider_for
