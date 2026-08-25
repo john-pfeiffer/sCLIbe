@@ -6,7 +6,7 @@ output and the settings it ran with; re-runs rebuild only what changed (edited
 steps.json, new voice, new accent...). `--from STAGE` and `--force` override.
 
 Settings resolution: CLI flags > sclibe.json (cwd, then ~/.sclibe.json) > defaults.
-Context is prompted for interactively when not given via --context.
+Context is prompted for interactively when not given via --context/--context-file.
 """
 
 import argparse
@@ -23,7 +23,7 @@ from . import doc as doc_mod
 from . import frames as frames_mod
 from . import ingest, narrate, video as video_mod
 from .config import DEFAULTS, load_config, merge_settings, resolve_voice, save_config
-from .style import Style, ffcolor
+from .style import Style, ffcolor, title_card_mode
 from .util import ToolError, check_tools, log
 
 STAGES = ["probe", "frames", "analyze", "doc", "video", "narrate"]
@@ -40,6 +40,9 @@ class Job:
     rate: int
     threshold: float
     max_frames: int
+    settle_delay: float
+    min_gap: float
+    max_slowdown: float
     context: str | None = None
     style: Style = field(default_factory=Style)
     meta: dict = field(default_factory=dict)
@@ -85,11 +88,15 @@ def stage_probe(job: Job, force: bool) -> bool:
 
 
 def stage_frames(job: Job, force: bool) -> bool:
-    fp = {"threshold": job.threshold, "max_frames": job.max_frames}
+    fp = {
+        "threshold": job.threshold, "max_frames": job.max_frames,
+        "settle_delay": job.settle_delay, "min_gap": job.min_gap,
+    }
     if _skip(job, "frames", fp, [job.work / "frames.json"], [job.video], force):
         return False
     frames_mod.select_and_extract(
-        job.video, job.meta["duration"], job.work, job.threshold, job.max_frames
+        job.video, job.meta["duration"], job.work, job.threshold, job.max_frames,
+        job.settle_delay, job.min_gap,
     )
     cache.record(job.work, "frames", fp)
     return True
@@ -162,12 +169,20 @@ def stage_narrate(job: Job, force: bool) -> bool:
         "tts": job.tts, "voice": job.voice, "rate": job.rate,
         "accent": job.style.accent, "font": job.style.font,
         "font_scale": job.style.font_scale, "title_card": job.style.title_card,
+        "title_card_image": job.style.title_card_image,
+        "title_card_text": job.style.title_card_text,
+        "title_text": job.style.title_text, "subtitle_text": job.style.subtitle_text,
+        "max_slowdown": job.max_slowdown,
     }
-    if _skip(job, "narrate", fp, [final], [job.steps_path, *job.segments], force):
+    inputs = [job.steps_path, *job.segments]
+    if job.style.title_card_image:
+        inputs.append(Path(job.style.title_card_image))  # re-narrate if the image is edited
+    if _skip(job, "narrate", fp, [final], inputs, force):
         return False
     narrate.narrate(
         analyze_mod.load_steps(job.steps_path), job.segments, job.work,
         final, job.tts, job.voice, job.rate, job.style, job.meta,
+        max_slowdown=job.max_slowdown,
     )
     cache.record(job.work, "narrate", fp)
     return True
@@ -204,6 +219,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--context", metavar="TEXT",
                         help="tell the AI what the recording shows — if omitted, you'll be "
                              "prompted whenever a (paid) analysis is about to run")
+    parser.add_argument("--context-file", type=Path, default=None, metavar="PATH",
+                        help="file (plain text or markdown) with context or details for the "
+                             "AI — combined with --context when both are given")
     parser.add_argument("--from", dest="from_stage", choices=STAGES, metavar="STAGE",
                         help=f"force re-run from this stage onward ({', '.join(STAGES)})")
     parser.add_argument("--force", action="store_true", help="re-run every stage")
@@ -234,11 +252,32 @@ def build_parser() -> argparse.ArgumentParser:
                          help="no step label overlay on video segments")
     styling.add_argument("--no-title-card", action="store_true", default=None,
                          help="no narrated intro card before step 1")
+    styling.add_argument("--title-card-image", default=None, metavar="PATH",
+                         help="image for the intro card, letterboxed on the accent color; "
+                              "text is overlaid unless --no-title-card-text")
+    styling.add_argument("--no-title-card-text", action="store_true", default=None,
+                         help="title card image only, no text overlaid (needs --title-card-image)")
+    styling.add_argument("--title-text", default=None, metavar="TEXT",
+                         help="custom title on the intro card "
+                              "(default: the AI-generated process title)")
+    styling.add_argument("--subtitle-text", default=None, metavar="TEXT",
+                         help="custom subtitle on the intro card (default: the step count)")
     parser.add_argument("--threshold", type=float, default=None,
                         help="scene-change sensitivity, lower = more frames "
                              f"(default: {DEFAULTS['threshold']:g})")
     parser.add_argument("--max-frames", type=int, default=None,
                         help=f"cap on frames sent to the API (default: {DEFAULTS['max_frames']})")
+    parser.add_argument("--settle-delay", type=float, default=None, metavar="N",
+                        help="seconds to wait after a detected change before taking the "
+                             "screenshot — raise for slow UIs or animations "
+                             f"(default: {DEFAULTS['settle_delay']:g})")
+    parser.add_argument("--min-gap", type=float, default=None, metavar="N",
+                        help="minimum seconds between screenshots "
+                             f"(default: {DEFAULTS['min_gap']:g})")
+    parser.add_argument("--max-slowdown", type=float, default=None, metavar="N",
+                        help="how much a segment may slow to fit its narration; 1.0 = never "
+                             "slow, hold the last frame instead "
+                             f"(default: {DEFAULTS['max_slowdown']:g})")
     parser.add_argument("--save-config", action="store_true",
                         help="write the effective settings to ./sclibe.json and continue")
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -268,6 +307,12 @@ def prompt_for_video() -> Path:
         if path.is_file():
             return path
         print(f"not found: {path} — try again (Enter to cancel)")
+
+
+def merged_context(text: str | None, file_text: str | None) -> str | None:
+    """Combine --context and --context-file contents. Pure (tested)."""
+    parts = [p.strip() for p in (text, file_text) if p and p.strip()]
+    return "\n\n".join(parts) or None
 
 
 def prompt_for_context() -> str | None:
@@ -311,12 +356,37 @@ def main() -> None:
                 "font_scale": args.font_scale,
                 "banners": False if args.no_banners else None,
                 "title_card": False if args.no_title_card else None,
+                "title_card_image": args.title_card_image,
+                "title_card_text": False if args.no_title_card_text else None,
+                "title_text": args.title_text,
+                "subtitle_text": args.subtitle_text,
+                "settle_delay": args.settle_delay,
+                "min_gap": args.min_gap,
+                "max_slowdown": args.max_slowdown,
             },
             load_config(),
         )
         ffcolor(settings["accent"])
+        style = Style(
+            accent=settings["accent"],
+            font=settings["font"],
+            font_scale=settings["font_scale"],
+            banners=settings["banners"],
+            title_card=settings["title_card"],
+            title_card_image=settings["title_card_image"],
+            title_card_text=settings["title_card_text"],
+            title_text=settings["title_text"],
+            subtitle_text=settings["subtitle_text"],
+        )
+        title_card_mode(style)  # rejects text off with no image
     except ValueError as exc:
         sys.exit(f"error: {exc}")
+
+    if style.title_card_image:
+        image = Path(style.title_card_image).expanduser()
+        if not image.is_file():
+            sys.exit(f"error: title card image not found: {image}")
+        style.title_card_image = str(image)
 
     # Fail fast on environment problems before asking the user anything.
     check_tools(require_say=not args.no_video)
@@ -340,6 +410,12 @@ def main() -> None:
 
     # Ask for context only when the paid analysis will actually run this time.
     context = args.context
+    if args.context_file is not None:
+        try:
+            file_text = args.context_file.expanduser().read_text()
+        except OSError as exc:
+            sys.exit(f"error: cannot read context file: {exc}")
+        context = merged_context(args.context, file_text)
     analyze_will_run = args.force or not (outdir / "steps.json").exists() or (
         from_index is not None and from_index <= STAGES.index("analyze")
     )
@@ -355,14 +431,11 @@ def main() -> None:
         rate=settings["rate"],
         threshold=settings["threshold"],
         max_frames=settings["max_frames"],
+        settle_delay=settings["settle_delay"],
+        min_gap=settings["min_gap"],
+        max_slowdown=settings["max_slowdown"],
         context=context,
-        style=Style(
-            accent=settings["accent"],
-            font=settings["font"],
-            font_scale=settings["font_scale"],
-            banners=settings["banners"],
-            title_card=settings["title_card"],
-        ),
+        style=style,
     )
     job.work.mkdir(parents=True, exist_ok=True)
 

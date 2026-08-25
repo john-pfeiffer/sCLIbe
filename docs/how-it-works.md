@@ -28,8 +28,8 @@ One `ffprobe` call. Records duration, resolution, and fps to `meta.json`. Durati
 The goal: **20–60 frames that capture every meaningful moment** of a recording, not thousands.
 
 1. **PySceneDetect** `ContentDetector` scans the video with a low threshold (default 10 vs. the library's default 27) — screen recordings have subtle transitions (a dropdown opens, a modal appears), not hard cuts.
-2. Each detected change becomes a candidate at **change + 0.7s** — sampling after the UI has settled avoids mid-animation frames that confuse the model.
-3. Candidates closer than 2s are merged (later one wins).
+2. Each detected change becomes a candidate at **change + `settle_delay`** (default 0.7s) — sampling after the UI has settled avoids mid-animation frames that confuse the model.
+3. Candidates closer than `min_gap` (default 2s) are merged (later one wins).
 4. **Backfill:** any gap longer than 30s gets interval samples every 20s (catches slow scrolling/typing the detector missed). If detection found almost nothing on a long video, it falls back to sampling every 15s.
 5. The first and last moments are always kept. If over `--max-frames`, the lowest-scoring candidates are dropped.
 6. Each frame is extracted as a JPEG at **max 1568px long edge** — that's the token sweet spot (~1,100–1,600 tokens/image vs ~4,784 at full resolution) with no meaningful loss in the model's ability to read UI text.
@@ -63,14 +63,14 @@ For each step, re-extracts `key_frame_time` from the original video at **full re
 
 ### 6. narrate (`narrate.py`)
 
-Unless `--no-title-card`: an intro card (process title + step count on the accent background, sized to match the segments' resolution/fps so concat stays lossless) is generated first, with the `process_summary` read over it as narration — the card extends to fit the audio.
+Unless `--no-title-card`: an intro card is generated with the `process_summary` read over it as narration. The intro audio is synthesized first and the card is rendered exactly long enough for it (minimum 3.5s), so the card never needs stretching. The card has three looks — text on the accent background (default), a user-supplied image letterboxed onto the accent color with the text overlaid, or the image alone (`title_card_image` / `title_card_text` in `style.py`'s `title_card_mode`) — and `title_text`/`subtitle_text` replace the AI title and step count when set. All variants match the segments' resolution/fps so concat stays lossless.
 
 Per step:
 
 1. TTS via the configured provider (`tts.py`): `edge` (free Microsoft neural voices, default, auto-falls back to `say` offline), `say` (offline macOS), `openai` (premium), or `elevenlabs` (best-in-class, voice IDs from your VoiceLab).
 2. **Fit policy — narration is never cut off, and stays in sync:**
    - audio shorter than the segment → pad the audio with trailing silence
-   - audio longer than the segment → **slow the video down** (up to 2×, `setpts`) so the on-screen action stays under the words describing it; only freeze the last frame for anything beyond that
+   - audio longer than the segment → **slow the video down** (up to `max_slowdown`, default 2×, via `setpts`) so the on-screen action stays under the words describing it; only freeze the last frame for anything beyond that. At `max_slowdown: 1.0` the video is never slowed — it holds the last frame instead.
 3. Mux audio onto the segment (AAC 48kHz stereo).
 
 Then all narrated segments (title card first, when enabled) are concatenated (concat demuxer, stream copy — all segments share identical encoding parameters), and chapter metadata is attached via an ffmetadata file (`[CHAPTER]` blocks with millisecond offsets) — an "Intro" chapter for the card, then one per step. QuickTime, VLC, and YouTube all read these chapters.

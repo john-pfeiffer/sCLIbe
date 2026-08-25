@@ -76,12 +76,19 @@ The file always contains **every** setting spelled out — not just the ones you
   "rate": 175,
   "threshold": 10.0,
   "max_frames": 60,
+  "settle_delay": 0.7,
+  "min_gap": 2.0,
+  "max_slowdown": 2.0,
   "output_root": "output",
   "accent": "#2563eb",
   "font": "Helvetica Neue",
   "font_scale": 1.0,
   "banners": true,
-  "title_card": true
+  "title_card": true,
+  "title_card_image": null,
+  "title_card_text": true,
+  "title_text": null,
+  "subtitle_text": null
 }
 ```
 
@@ -123,6 +130,30 @@ sclibe rec.mov --accent "#0E7C5B" --font "Avenir Next" --save-config
 | `font_scale` | `1.0` | Multiplier on all rendered text sizes; `1.3` for noticeably bigger banners |
 | `banners` | `true` | Show the "Step 2 — Fill the form" label at the start of each segment |
 | `title_card` | `true` | Open the video with a narrated title card |
+| `title_card_image` | `null` | Image for the title card, letterboxed on the accent color. `null` = plain accent-color background. See [the title card](#the-title-card). |
+| `title_card_text` | `true` | Overlay the title and subtitle on the card. `false` needs `title_card_image` — a card with no image and no text is an error. |
+| `title_text` | `null` | Custom card title. `null` = the AI-generated process title. |
+| `subtitle_text` | `null` | Custom card subtitle. `null` = the step count ("7 steps"). |
+| `max_slowdown` | `2.0` | When narration runs longer than its video segment, how much the segment may slow down to fit. `1.0` = never slow the video — hold the last frame instead. |
+
+### The title card
+
+The narrated intro card has four looks, driven by three settings:
+
+| You want | Settings |
+|---|---|
+| Text on the accent color *(default)* | `title_card: true` |
+| Your image with text overlaid | set `title_card_image` |
+| Your image only | set `title_card_image` and `title_card_text: false` |
+| No card at all | `title_card: false` |
+
+The image (PNG or JPEG) is letterboxed onto the accent color if its aspect ratio differs from the video's, and the card stays on screen for as long as its narration runs. `title_text` and `subtitle_text` replace the AI-generated title and step count wherever text is shown:
+
+```bash
+sclibe rec.mov --title-card-image ~/brand/intro.png --title-text "Invoicing 101"
+sclibe config set title_card_image ~/brand/intro.png   # make it permanent
+sclibe config set title_card_image null                # back to the accent color
+```
 
 ### Frames and cost
 
@@ -130,6 +161,10 @@ sclibe rec.mov --accent "#0E7C5B" --font "Avenir Next" --save-config
 |---|---|---|
 | `threshold` | `10.0` | Scene-change sensitivity. **Lower catches more**: drop to `6` if steps are being missed; raise to `18` if a busy or animated screen produces far too many frames. |
 | `max_frames` | `60` | Hard cap on frames sent to the AI. This is your main cost lever — frames are most of what you pay for. |
+| `settle_delay` | `0.7` | Seconds to wait after a detected change before taking the screenshot, so menus finish opening and pages finish loading. Raise it if screenshots keep catching half-drawn screens. |
+| `min_gap` | `2.0` | Minimum seconds between screenshots. Raise it to thin out rapid-fire clicking; lower it if quick consecutive actions get merged into one frame. |
+
+Changing `settle_delay` or `min_gap` shifts which moments get captured, so the frame set changes — on a re-run sCLIbe will notice and ask before redoing the **paid** analysis, exactly as it does for `threshold`.
 
 ### Output
 
@@ -242,6 +277,13 @@ sclibe config set model claude-haiku-4-5
 ```bash
 sclibe config set banners false
 sclibe config set title_card false
+```
+
+**Branded intro card on every video:**
+
+```bash
+sclibe config set title_card_image ~/brand/intro.png
+sclibe config set title_card_text false     # if the image already carries the title
 ```
 
 ---
