@@ -21,7 +21,7 @@ sclibe VIDEO [flags]            # fully scripted
 
 - With no video argument, sclibe asks for the path — pasting or dragging the file from Finder both work (quotes and escapes are cleaned up).
 - The context question only appears when a **paid** analysis is actually about to run; cached re-runs and non-interactive shells are never prompted.
-- The title card questions (use an image? custom title?) appear at the same moment, and only for choices not already made by a flag or config key — `title_card_image` / `title_text` in `sclibe.json` silence them for good, and `--no-video` or `title_card: false` skips them.
+- The title card questions (use an image? custom title?) appear on every interactive run, but only for choices not already made by a flag or config key — `title_card_image` / `title_text` in `sclibe.json` silence them for good, and `--no-video` or `title_card: false` skips them.
 - Re-runs rebuild only what changed (see [usage — cache](usage.md#6-understanding-cache-and-re-runs)).
 
 ### Flags

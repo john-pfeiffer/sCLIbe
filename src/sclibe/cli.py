@@ -330,8 +330,8 @@ def prompt_for_context() -> str | None:
 
 
 def prompt_for_title_card(style: Style) -> None:
-    """Ask about the intro card, mutating `style`. Runs alongside the context
-    prompt — only interactively, and only for settings not already given via
+    """Ask about the intro card, mutating `style`. Runs on every interactive
+    run with the card enabled, but only for settings not already given via
     a flag or the config file (those never prompt)."""
     try:
         if style.title_card_image is None:
@@ -449,7 +449,7 @@ def main() -> None:
     )
     if context is None and analyze_will_run and sys.stdin.isatty():
         context = prompt_for_context()
-    if analyze_will_run and sys.stdin.isatty() and not args.no_video and style.title_card:
+    if sys.stdin.isatty() and not args.no_video and style.title_card:
         prompt_for_title_card(style)
 
     job = Job(
