@@ -17,6 +17,7 @@ DEFAULTS = {
     "tts": "edge",       # edge (free neural voices) | say | openai | elevenlabs
     "voice": None,       # provider voice name/ID, a saved name from `voices`, or None = provider default
     "voices": {},        # saved roster: {"name": {"tts": "...", "voice": "..."}}
+    "pronunciations": {},  # audio-only respellings: {"Cohrt": "co-hort"} — written guide keeps the real spelling
     "rate": 175,
     "threshold": 10.0,
     "max_frames": 60,
@@ -80,6 +81,13 @@ def merge_settings(cli: dict, config: dict) -> dict:
         raise ValueError("min_gap must be > 0 seconds")
     if out["max_slowdown"] < 1.0:
         raise ValueError("max_slowdown must be >= 1.0 (1.0 = never slow the video)")
+    pron = out["pronunciations"]
+    if not isinstance(pron, dict) or not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in pron.items()
+    ):
+        raise ValueError(
+            'pronunciations must map words to respellings, e.g. {"Cohrt": "co-hort"}'
+        )
     return out
 
 
