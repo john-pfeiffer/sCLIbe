@@ -122,6 +122,7 @@ def stage_analyze(job: Job, force: bool) -> bool:
         if not sys.stdin.isatty():
             log.warning("keeping the cached analysis (non-interactive) — use --from analyze to redo it")
             return False
+        _pending_stdin_lines()  # a stray paste must not answer for the paid step
         answer = input("Re-run the AI analysis? This is the paid step. [y/N] ").strip().lower()
         if answer not in ("y", "yes"):
             log.info("keeping the cached analysis")
@@ -315,18 +316,38 @@ def merged_context(text: str | None, file_text: str | None) -> str | None:
     return "\n\n".join(parts) or None
 
 
+def _pending_stdin_lines() -> list[str]:
+    """Lines already buffered on stdin — the rest of a multi-line paste.
+    input() returns only the first pasted line; without this, the rest would
+    be swallowed as the answers to whatever prompts come next."""
+    import select
+
+    lines = []
+    try:
+        while select.select([sys.stdin], [], [], 0.05)[0]:
+            line = sys.stdin.readline()
+            if not line:
+                break
+            lines.append(line.rstrip("\n"))
+    except (OSError, ValueError):
+        pass  # stdin isn't selectable (tests, redirection) — nothing buffered to read
+    return lines
+
+
 def prompt_for_context() -> str | None:
-    """One-line interactive prompt, only used when a paid analysis is about to run."""
+    """Interactive prompt, only used when a paid analysis is about to run.
+    A multi-line paste is captured in full."""
     print(
         "\nDescribe what this recording shows — the app, the business purpose, and who\n"
         "the guide is for. This greatly improves the result. (Enter to skip)"
     )
     try:
-        answer = input("context> ").strip()
+        first = input("context> ")
     except (EOFError, KeyboardInterrupt):
         print()
         return None
-    return answer or None
+    text = "\n".join([first, *_pending_stdin_lines()]).strip()
+    return text or None
 
 
 def prompt_for_title_card(style: Style) -> None:
@@ -334,6 +355,7 @@ def prompt_for_title_card(style: Style) -> None:
     run with the card enabled, but only for settings not already given via
     a flag or the config file (those never prompt)."""
     try:
+        _pending_stdin_lines()  # a stray paste must not answer the questions below
         if style.title_card_image is None:
             answer = input("\nUse an image in the title card? [y/N] ").strip().lower()
             if answer in ("y", "yes"):

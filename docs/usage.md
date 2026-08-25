@@ -130,7 +130,7 @@ sclibe rec.mov --context "Our monthly invoice run in QuickBooks. The operator is
 an accountant; the popup at the end is the confirmation email preview."
 ```
 
-For anything longer than a sentence or two — product background, terminology, a walkthrough outline — put it in a markdown (or plain text) file and pass that instead. The interactive prompt is one line only, so a file is the way to give the AI real detail:
+Pasting a multi-line block at the interactive prompt works — every pasted line is captured as context. For detail you'll reuse across recordings — product background, terminology, a walkthrough outline — keep it in a markdown (or plain text) file and pass that instead:
 
 ```bash
 sclibe rec.mov --context-file notes/invoicing.md
