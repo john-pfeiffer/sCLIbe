@@ -329,6 +329,34 @@ def prompt_for_context() -> str | None:
     return answer or None
 
 
+def prompt_for_title_card(style: Style) -> None:
+    """Ask about the intro card, mutating `style`. Runs alongside the context
+    prompt — only interactively, and only for settings not already given via
+    a flag or the config file (those never prompt)."""
+    try:
+        if style.title_card_image is None:
+            answer = input("\nUse an image in the title card? [y/N] ").strip().lower()
+            if answer in ("y", "yes"):
+                print("Paste the image path (or drag the file into this window):")
+                while True:
+                    raw = input("image> ")
+                    if not raw.strip():
+                        break  # skip — plain accent-color card
+                    path = clean_path(raw)
+                    if path.is_file():
+                        style.title_card_image = str(path)
+                        break
+                    print(f"not found: {path} — try again (Enter to skip)")
+        if style.title_card_text and style.title_text is None:
+            answer = input("Custom title on the card? [y/N] (No = the AI writes one) ").strip().lower()
+            if answer in ("y", "yes"):
+                text = input("title> ").strip()
+                if text:
+                    style.title_text = text
+    except (EOFError, KeyboardInterrupt):
+        print()
+
+
 def main() -> None:
     if len(sys.argv) > 1 and sys.argv[1] in ("config", "voices", "voice"):
         from .config import command
@@ -421,6 +449,8 @@ def main() -> None:
     )
     if context is None and analyze_will_run and sys.stdin.isatty():
         context = prompt_for_context()
+    if analyze_will_run and sys.stdin.isatty() and not args.no_video and style.title_card:
+        prompt_for_title_card(style)
 
     job = Job(
         video=args.video,

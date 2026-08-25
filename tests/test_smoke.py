@@ -221,6 +221,39 @@ def test_merge_settings_validates_timing_keys():
     assert out["title_card_image"] == "/tmp/a.png"     # CLI beats config for new keys too
 
 
+def test_prompt_for_title_card_flow(tmp_path, monkeypatch):
+    from sclibe.cli import prompt_for_title_card
+    from sclibe.style import Style
+
+    img = tmp_path / "logo.png"
+    img.write_bytes(b"png")
+
+    # yes to both: image (with one bad path retried) and a custom title
+    answers = iter(["y", "/nope.png", str(img), "y", "Invoicing 101"])
+    monkeypatch.setattr("builtins.input", lambda _="": next(answers))
+    style = Style()
+    prompt_for_title_card(style)
+    assert style.title_card_image == str(img)
+    assert style.title_text == "Invoicing 101"
+
+    # no to both: AI defaults stay in place
+    answers = iter(["n", "n"])
+    style = Style()
+    prompt_for_title_card(style)
+    assert style.title_card_image is None and style.title_text is None
+
+    # already configured image -> only the title question is asked
+    answers = iter(["n"])
+    style = Style(title_card_image=str(img))
+    prompt_for_title_card(style)
+    assert style.title_card_image == str(img)
+
+    # image-only card configured -> nothing to ask at all
+    answers = iter([])
+    style = Style(title_card_image=str(img), title_card_text=False)
+    prompt_for_title_card(style)
+
+
 def test_stale_reason_detects_changes():
     from sclibe.cache import stale_reason
     fp = {"voice": "narrator", "tts": "elevenlabs"}
