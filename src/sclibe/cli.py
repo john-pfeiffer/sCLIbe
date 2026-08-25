@@ -122,7 +122,7 @@ def stage_analyze(job: Job, force: bool) -> bool:
         if not sys.stdin.isatty():
             log.warning("keeping the cached analysis (non-interactive) — use --from analyze to redo it")
             return False
-        _pending_stdin_lines()  # a stray paste must not answer for the paid step
+        _pending_stdin_text()  # a stray paste must not answer for the paid step
         answer = input("Re-run the AI analysis? This is the paid step. [y/N] ").strip().lower()
         if answer not in ("y", "yes"):
             log.info("keeping the cached analysis")
@@ -316,22 +316,46 @@ def merged_context(text: str | None, file_text: str | None) -> str | None:
     return "\n\n".join(parts) or None
 
 
-def _pending_stdin_lines() -> list[str]:
-    """Lines already buffered on stdin — the rest of a multi-line paste.
-    input() returns only the first pasted line; without this, the rest would
-    be swallowed as the answers to whatever prompts come next."""
-    import select
+def _pending_stdin_text() -> str:
+    """Everything already buffered on stdin — the rest of a multi-line paste,
+    INCLUDING a final line with no trailing newline. input() returns only the
+    first pasted line; without this, the rest would be swallowed as the answers
+    to whatever prompts come next (an unterminated final fragment would even
+    glue itself onto the next thing typed)."""
+    import os
+    import termios
 
-    lines = []
+    chunks = []
     try:
-        while select.select([sys.stdin], [], [], 0.05)[0]:
-            line = sys.stdin.readline()
-            if not line:
-                break
-            lines.append(line.rstrip("\n"))
-    except (OSError, ValueError):
-        pass  # stdin isn't selectable (tests, redirection) — nothing buffered to read
-    return lines
+        fd = sys.stdin.fileno()
+        old = termios.tcgetattr(fd)
+        new = termios.tcgetattr(fd)
+        new[3] &= ~termios.ICANON  # read what's there, not line-by-line
+        new[6][termios.VMIN] = 0
+        new[6][termios.VTIME] = 1  # allow 0.1s for the rest of a paste to arrive
+        try:
+            termios.tcsetattr(fd, termios.TCSANOW, new)
+            while True:
+                data = os.read(fd, 65536)
+                if not data:
+                    break
+                chunks.append(data)
+        finally:
+            termios.tcsetattr(fd, termios.TCSANOW, old)
+    except Exception:
+        return ""  # stdin isn't a real terminal (tests, redirection) — nothing pending
+    return b"".join(chunks).decode(errors="replace")
+
+
+def _ask_yn(question: str) -> bool:
+    """y/N prompt that re-asks on anything unrecognized instead of guessing."""
+    while True:
+        answer = input(question).strip().lower()
+        if answer in ("y", "yes"):
+            return True
+        if answer in ("", "n", "no"):
+            return False
+        print("please answer y or n")
 
 
 def prompt_for_context() -> str | None:
@@ -346,7 +370,9 @@ def prompt_for_context() -> str | None:
     except (EOFError, KeyboardInterrupt):
         print()
         return None
-    text = "\n".join([first, *_pending_stdin_lines()]).strip()
+    text = (first + "\n" + _pending_stdin_text()).strip()
+    if "\n" in text:
+        print("(captured the full paste)")
     return text or None
 
 
@@ -355,10 +381,9 @@ def prompt_for_title_card(style: Style) -> None:
     run with the card enabled, but only for settings not already given via
     a flag or the config file (those never prompt)."""
     try:
-        _pending_stdin_lines()  # a stray paste must not answer the questions below
+        _pending_stdin_text()  # a stray paste must not answer the questions below
         if style.title_card_image is None:
-            answer = input("\nUse an image in the title card? [y/N] ").strip().lower()
-            if answer in ("y", "yes"):
+            if _ask_yn("\nUse an image in the title card? [y/N] "):
                 print("Paste the image path (or drag the file into this window):")
                 while True:
                     raw = input("image> ")
@@ -370,8 +395,7 @@ def prompt_for_title_card(style: Style) -> None:
                         break
                     print(f"not found: {path} — try again (Enter to skip)")
         if style.title_card_text and style.title_text is None:
-            answer = input("Custom title on the card? [y/N] (No = the AI writes one) ").strip().lower()
-            if answer in ("y", "yes"):
+            if _ask_yn("Custom title on the card? [y/N] (No = the AI writes one) "):
                 text = input("title> ").strip()
                 if text:
                     style.title_text = text
