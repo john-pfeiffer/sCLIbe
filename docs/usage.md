@@ -29,7 +29,7 @@ sclibe
 
 (Or just `sclibe` from anywhere, if you set up the alias from [setup — step 6](setup.md#6-optional-run-sclibe-from-anywhere-recommended).)
 
-That's the whole command. sclibe asks for the two things that change every run:
+That's the whole command. sclibe asks for the things that change per recording:
 
 ```
 Paste the path to your screen recording (or drag the file into this window):
@@ -38,9 +38,14 @@ video> ~/Desktop/my-recording.mov
 Describe what this recording shows — the app, the business purpose, and who
 the guide is for. This greatly improves the result. (Enter to skip)
 context> Our monthly invoice run in QuickBooks, for new accountants.
+
+Use an image in the title card? [y/N] y
+Paste the image path (or drag the file into this window):
+image> ~/brand/intro.png
+Custom title on the card? [y/N] (No = the AI writes one) n
 ```
 
-Drag the file from Finder straight into the Terminal window — quoted or escaped paths are handled. Everything else (brand color, font, voice, model) comes from your `sclibe.json` (see below). You can still pass the path and context as arguments for scripting: `sclibe rec.mov --context "..."`.
+Drag files from Finder straight into the Terminal window — quoted or escaped paths are handled. The title card questions only cover what isn't already decided: setting `title_card_image` or `title_text` in your config (or passing the flags) answers them permanently, and `title_card: false` skips them entirely. Everything else (brand color, font, voice, model) comes from your `sclibe.json` (see below). You can still pass everything as arguments for scripting: `sclibe rec.mov --context "..." --title-card-image logo.png`.
 
 You'll see each stage log as it runs. The line to watch:
 
