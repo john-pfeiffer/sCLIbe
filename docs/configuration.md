@@ -149,7 +149,7 @@ The narrated intro card has four looks, driven by three settings:
 
 The image (PNG or JPEG) is letterboxed onto the accent color if its aspect ratio differs from the video's, and the card stays on screen for as long as its narration runs. `title_text` and `subtitle_text` replace the AI-generated title and step count wherever text is shown.
 
-Interactive runs ask about the card (use an image? custom title?) right after the context question — but only for choices you haven't already made here or with a flag; set `title_card_image`/`title_text` once and the questions disappear:
+Interactive runs ask about the card (use an image? custom title?) — but only for choices you haven't already made here or with a flag; set `title_card_image`/`title_text` once and the questions disappear:
 
 ```bash
 sclibe rec.mov --title-card-image ~/brand/intro.png --title-text "Invoicing 101"
