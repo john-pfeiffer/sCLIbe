@@ -125,7 +125,14 @@ sclibe rec.mov --context "Our monthly invoice run in QuickBooks. The operator is
 an accountant; the popup at the end is the confirmation email preview."
 ```
 
-Good context mentions: the app/site, the business purpose, who the guide is for, and anything on screen that would otherwise look confusing. The context is saved into `steps.json` so you can see what a past run was told. The prompt only appears when analysis will actually run — cached re-runs and non-interactive shells never ask. Changing context alone doesn't invalidate a cached analysis — add `--from analyze` to redo it (paid call).
+For anything longer than a sentence or two — product background, terminology, a walkthrough outline — put it in a markdown (or plain text) file and pass that instead. The interactive prompt is one line only, so a file is the way to give the AI real detail:
+
+```bash
+sclibe rec.mov --context-file notes/invoicing.md
+sclibe rec.mov --context "Focus on the approval flow" --context-file notes/invoicing.md   # both: combined
+```
+
+Good context mentions: the app/site, the business purpose, who the guide is for, and anything on screen that would otherwise look confusing. The context is saved into `steps.json` so you can see what a past run was told. The prompt only appears when analysis will actually run — cached re-runs and non-interactive shells never ask. Passing a different context (or an edited context file) when a cached analysis exists makes sclibe say what changed and ask before re-running the paid step; `--from analyze` forces the re-run without the question.
 
 ### Settings that stick
 
@@ -146,9 +153,10 @@ The cache is automatic — **change something, rerun the same `sclibe` command, 
 | You changed | What rebuilds by itself |
 |---|---|
 | `steps.json` (hand-edits) | doc, video, narration |
-| voice / tts / rate | narration only |
+| voice / tts / rate / max-slowdown | narration only |
+| title card settings (image, text, on/off) | narration only |
 | accent / font / font-scale / banners | video + doc (narration follows) |
-| threshold / max-frames | frame selection (then asks about re-analysis — see below) |
+| threshold / max-frames / settle-delay / min-gap | frame selection (then asks about re-analysis — see below) |
 | nothing | nothing — you get "everything is already up to date" |
 
 The one exception is the **paid** analysis stage: it never re-runs silently. If the model, context, or frame set changed, sclibe tells you what changed and asks before spending money (non-interactive runs keep the cache and warn).

@@ -31,6 +31,7 @@ Every flag is a one-off override of the corresponding [config setting](#sclibe-c
 |---|---|---|
 | `--model NAME` | `claude-opus-5` | Vision model for analysis — the provider is inferred from the name: `claude-*` (Anthropic), `gpt-*` (OpenAI, e.g. `gpt-4o`), `grok-*` (xAI). `claude-haiku-4-5` is ~5× cheaper than the default. |
 | `--context "TEXT"` | *prompted* | What the recording shows. If omitted, asked interactively when a paid analysis is about to run. |
+| `--context-file PATH` | — | A file (plain text or markdown) with context or details for the AI; combined with `--context` when both are given |
 | `--no-video` | off | Written guide only — skips cutting, narration, and the final video |
 | `--from STAGE` | — | Force a rerun from this stage onward: `probe`, `frames`, `analyze`, `doc`, `video`, `narrate` |
 | `--force` | off | Redo every stage, **including the paid analysis** |
@@ -42,8 +43,15 @@ Every flag is a one-off override of the corresponding [config setting](#sclibe-c
 | `--font-scale N` | `1.0` | Multiplier on rendered text sizes |
 | `--no-banners` | off | No step-label overlay on video segments |
 | `--no-title-card` | off | No narrated intro card before step 1 |
+| `--title-card-image PATH` | — | Image for the intro card, letterboxed on the accent color; text is overlaid unless `--no-title-card-text` |
+| `--no-title-card-text` | off | Title card image only, no text overlaid (needs `--title-card-image`) |
+| `--title-text "TEXT"` | *AI title* | Custom title on the intro card, instead of the AI-generated process title |
+| `--subtitle-text "TEXT"` | *step count* | Custom subtitle on the intro card, instead of "N steps" |
 | `--threshold N` | `10` | Scene-change sensitivity; lower = more frames |
 | `--max-frames N` | `60` | Cap on frames sent to the API (cost control) |
+| `--settle-delay N` | `0.7` | Seconds to wait after a detected change before taking the screenshot — raise for slow UIs or animations |
+| `--min-gap N` | `2` | Minimum seconds between screenshots |
+| `--max-slowdown N` | `2` | How much a segment may slow to fit its narration; `1.0` = never slow, hold the last frame instead |
 | `-o DIR` / `--output-root DIR` | `./output` | Output root directory |
 | `--save-config` | off | Write this run's effective settings to `./sclibe.json` |
 | `-v` / `--verbose` | off | Show every underlying ffmpeg command |
@@ -62,7 +70,7 @@ Settings live in **one JSON file**: `sclibe.json` in the current directory if pr
 | `sclibe config edit` | Open the config file in `$EDITOR` (or TextEdit), materialized with every key visible |
 | `sclibe config path` | Print which config file is active |
 
-Valid keys for `set`: `model`, `tts`, `voice`, `rate`, `threshold`, `max_frames`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card` — each one explained with its default in the [configuration guide](configuration.md#every-setting). Values are parsed as JSON when possible (`175`, `true`, `1.3`), otherwise taken as strings. The nested `voices` roster is managed with `sclibe voices` (or by editing the file).
+Valid keys for `set`: `model`, `tts`, `voice`, `rate`, `threshold`, `max_frames`, `settle_delay`, `min_gap`, `max_slowdown`, `output_root`, `accent`, `font`, `font_scale`, `banners`, `title_card`, `title_card_image`, `title_card_text`, `title_text`, `subtitle_text` — each one explained with its default in the [configuration guide](configuration.md#every-setting). Values are parsed as JSON when possible (`175`, `true`, `1.3`), otherwise taken as strings. The nested `voices` roster is managed with `sclibe voices` (or by editing the file).
 
 ---
 

@@ -169,6 +169,58 @@ def test_materialized_config_is_complete():
     assert full["model"] == DEFAULTS["model"]          # gaps filled with defaults
 
 
+def test_plan_timestamps_respects_min_gap():
+    candidates = [(10.0, 5.0), (11.0, 6.0)]  # one second apart
+    close = plan_timestamps(candidates, duration=60.0, max_frames=60, min_gap=0.5)
+    assert {10.0, 11.0} <= {t for t, _ in close}       # both kept
+    wide = plan_timestamps(candidates, duration=60.0, max_frames=60, min_gap=5.0)
+    times = {t for t, _ in wide}
+    assert 11.0 in times and 10.0 not in times          # merged, later one kept
+
+
+def test_stretch_plan_custom_max_slowdown():
+    from sclibe.narrate import stretch_plan
+    assert stretch_plan(4.0, 12.0, max_slowdown=1.0) == (1.0, 8.0)  # never slow: hold only
+    assert stretch_plan(4.0, 12.0, max_slowdown=3.0) == (3.0, 0.0)  # roomier cap: pure slow-mo
+
+
+def test_card_seconds_fits_narration():
+    from sclibe.narrate import card_seconds
+    assert card_seconds(1.0) == 3.5                    # short narration: minimum card
+    assert card_seconds(12.0) == 12.5                  # long narration: audio + tail
+
+
+def test_title_card_mode_derivation():
+    import pytest
+    from sclibe.style import Style, title_card_mode
+    assert title_card_mode(Style(title_card=False)) == "off"
+    assert title_card_mode(Style()) == "text"
+    assert title_card_mode(Style(title_card_image="logo.png")) == "image+text"
+    assert title_card_mode(Style(title_card_image="logo.png", title_card_text=False)) == "image"
+    with pytest.raises(ValueError):
+        title_card_mode(Style(title_card_text=False))  # no image and no text
+    assert title_card_mode(Style(title_card=False, title_card_text=False)) == "off"  # off wins
+
+
+def test_merged_context_combines_flag_and_file():
+    from sclibe.cli import merged_context
+    assert merged_context("app demo", "# Details\nstuff") == "app demo\n\n# Details\nstuff"
+    assert merged_context("app demo", None) == "app demo"
+    assert merged_context(None, "# Details\n") == "# Details"
+    assert merged_context(None, None) is None
+    assert merged_context("", "  \n") is None          # blank inputs count as absent
+
+
+def test_merge_settings_validates_timing_keys():
+    import pytest
+    from sclibe.config import merge_settings
+    for bad in ({"settle_delay": -1.0}, {"min_gap": 0}, {"max_slowdown": 0.5}):
+        with pytest.raises(ValueError):
+            merge_settings(bad, {})
+    out = merge_settings({"title_card_image": "/tmp/a.png"}, {"title_card_image": "/tmp/b.png"})
+    assert out["title_card_image"] == "/tmp/a.png"     # CLI beats config for new keys too
+
+
 def test_stale_reason_detects_changes():
     from sclibe.cache import stale_reason
     fp = {"voice": "narrator", "tts": "elevenlabs"}

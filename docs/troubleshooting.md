@@ -100,7 +100,7 @@ sclibe rec.mov --from analyze     # paid call
 
 ### Steps are too coarse / too granular, or descriptions are thin
 
-- **Add `--context` first** — a sentence about the app and business purpose is the biggest quality lever, and it works on any model: `sclibe rec.mov --context "..." --from analyze` (paid call; check `_meta.context` in `steps.json` to see what a past run was told)
+- **Add `--context` first** — a sentence about the app and business purpose is the biggest quality lever, and it works on any model: `sclibe rec.mov --context "..."` makes sclibe notice the changed context and ask before re-running the analysis (paid call; `--from analyze` skips the question). For real detail, put it in a file: `--context-file notes.md`. Check `_meta.context` in `steps.json` to see what a past run was told.
 - Try the default Opus model if you used Haiku — quality difference is real on subtle UIs
 - Merge or split steps by hand in `steps.json` (it's just JSON — copy a step object, adjust the time ranges, rerun `--from doc`)
 
@@ -123,11 +123,18 @@ Voice names are provider-specific and case-sensitive: edge voices come from `edg
 
 ### Video goes slow-motion (or holds a frame) while narration keeps talking
 
-Working as designed: when a step's narration runs longer than its video segment, the segment is slowed (up to 2×) so the on-screen action stays in sync with the words, and only freezes on the last frame beyond that. If a step feels draggy, shorten that step's `narration` text in `steps.json` (or widen its `start_time`/`end_time`), then `sclibe rec.mov --from narrate`.
+Working as designed: when a step's narration runs longer than its video segment, the segment is slowed (up to `max_slowdown`, default 2×) so the on-screen action stays in sync with the words, and only holds the last frame beyond that. If a step feels draggy, shorten that step's `narration` text in `steps.json` (or widen its `start_time`/`end_time`), then `sclibe rec.mov --from narrate`. If you'd rather never see slow motion at all, `--max-slowdown 1.0` (or `sclibe config set max_slowdown 1.0`) plays every segment at normal speed and holds its last frame for the rest of the narration.
 
 ### Narration describes things after the video has moved past them
 
 That's the failure the slow-motion fit exists to prevent — if you still see it, the step's `narration` is probably describing actions from *outside* its `start_time`–`end_time` range. Trim the narration to what happens inside the range (or widen the range), then `--from narrate`.
+
+### Title card image is missing, cropped, or unreadable
+
+- `error: title card image not found` — the `title_card_image` path (config or `--title-card-image`) doesn't point at a file; `~` is expanded, so check the path with `ls`.
+- The image shows with colored bars around it: that's the letterboxing — the image's aspect ratio differs from the video's, so it's fitted and padded with the accent color. Export the image at the video's aspect ratio (usually 16:9) for a full-bleed card.
+- Text is hard to read over the image: the overlay already gets a dark box behind it, but a busy image can still fight it — use `--no-title-card-text` and bake the title into the image, or pick a calmer image.
+- Use PNG or JPEG; other formats depend on your ffmpeg build.
 
 ### Chapters don't show up
 
