@@ -309,3 +309,67 @@ def test_stale_reason_detects_changes():
     assert r == "settings changed (voice)"
     assert stale_reason(fp, dict(fp), [100.0], [200.0]) == "inputs changed"  # edited steps.json
     assert stale_reason(None, fp, [100.0], [200.0]) == "inputs changed"       # mtime wins even pre-tracking
+
+
+# ---- wrapper support: config path env var, progress events, voice listing ----
+
+def test_env_config_path_wins(monkeypatch, tmp_path):
+    from sclibe import config
+
+    target = tmp_path / "vibeo" / "sclibe.json"
+    monkeypatch.setenv("SCLIBE_CONFIG", str(target))
+    assert config.env_config_path() == target
+    assert config.config_path() is None          # set but not created yet -> no config in use
+    assert config._active_file() == target       # ... but writes go there
+    target.parent.mkdir()
+    target.write_text("{}")
+    assert config.config_path() == target
+    monkeypatch.setenv("SCLIBE_CONFIG", "  ")
+    assert config.env_config_path() is None      # blank means unset
+
+
+def test_progress_event_format(tmp_path):
+    import json
+
+    from sclibe import progress
+
+    line = progress.format_event("stage", stage="frames", status="start", path=tmp_path)
+    data = json.loads(line)
+    assert data == {"event": "stage", "stage": "frames", "status": "start", "path": str(tmp_path)}
+    assert "\n" not in line
+
+    (tmp_path / "guide.html").write_text("x")
+    assert progress.outputs_present(tmp_path) == {"guide_html": str(tmp_path / "guide.html")}
+
+
+def test_progress_emitter_and_log_handler():
+    import io
+    import json
+    import logging
+
+    from sclibe import progress
+
+    buf = io.StringIO()
+    emitter = progress.Emitter(stream=buf, enabled=False)
+    emitter.emit("start")
+    assert buf.getvalue() == ""                  # disabled: silent
+    emitter.enabled = True
+    logger = logging.getLogger("sclibe-test-progress")
+    logger.addHandler(progress.LogHandler(emitter))
+    logger.warning("analyze: %s", "the model changed")
+    events = [json.loads(l) for l in buf.getvalue().splitlines()]
+    assert events == [{"event": "log", "level": "warning", "message": "analyze: the model changed"}]
+
+
+def test_parse_say_voices():
+    from sclibe.tts import parse_say_voices
+
+    listing = (
+        "Samantha            en_US    # Hello, my name is Samantha.\n"
+        "Eddy (English (US)) en_US    # Hello, my name is Eddy.\n"
+        "Kyoko               ja_JP    # こんにちは。\n"
+        "\n"
+    )
+    voices = parse_say_voices(listing)
+    assert [v["id"] for v in voices] == ["Samantha", "Eddy (English (US))", "Kyoko"]
+    assert voices[1]["locale"] == "en_US"

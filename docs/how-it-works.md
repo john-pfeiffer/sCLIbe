@@ -104,6 +104,18 @@ Then all narrated segments (title card first, when enabled) are concatenated (co
 
 Safe to hand-edit: any text field, and the time fields (keep ranges in order and non-overlapping — the video stage clamps but doesn't reorder after your edits). After editing, just rerun — the cache notices and rebuilds doc, video, and narration.
 
+## Progress events
+
+`sclibe --progress-json` is how another program (the [Vibeo Mac app](https://github.com/john-pfeiffer/Vibeo), an editor integration, a script) drives the pipeline without parsing log text. Each line on stdout is one JSON object with an `event` key; stderr keeps the human log. Combine it with `--yes` and `--context` so nothing waits on a prompt.
+
+| Event | Fields | When |
+|---|---|---|
+| `start` | `video`, `outdir`, `stages` (the stages this run will consider) | before the first stage |
+| `stage` | `stage`, `status`: `start`, then `done` (it did work) or `skipped` (up to date) | around every stage |
+| `log` | `level`, `message` | every log line, mirrored |
+| `done` | `outdir`, `did_work`, `outputs` (`steps`, `meta`, `guide_md`, `guide_html`, `final_video` → paths that exist) | last line on success |
+| `error` | `message` | last line on failure (exit code is non-zero) |
+
 ## Cost math
 
 Cost = frames × tokens-per-frame × model input price, plus a small output cost.
@@ -132,7 +144,8 @@ Levers: `--max-frames` caps the biggest cost driver; `--model` trades quality fo
 | `doc.py` | stage 4 — screenshots, markdown, HTML template |
 | `video.py` | stage 5 — `padded_ranges`/`chapter_spans`/`ffmetadata_escape` (pure/tested), cutting, concat, chapters |
 | `narrate.py` | stage 6 — `stretch_plan` (pure/tested), fit-and-mux, final assembly |
-| `tts.py` | voice providers: edge / say / openai, per-provider default voices |
+| `tts.py` | voice providers: edge / say / openai / elevenlabs, per-provider default voices, `available_voices` listing (`parse_say_voices` pure/tested) |
+| `progress.py` | `--progress-json` NDJSON events for wrappers (`format_event`/`outputs_present` pure/tested) |
 | `util.py` | subprocess wrappers for ffmpeg/ffprobe, tool checks |
 
 Design rule: anything with logic worth testing is a pure function (no I/O), covered in `tests/test_smoke.py`; the rest is thin orchestration around `ffmpeg`, `say`, and the API.

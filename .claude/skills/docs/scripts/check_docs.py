@@ -77,8 +77,10 @@ def check_flags(problems: list[str]) -> str:
     if actual is None:
         return "skipped (CLI not runnable — install with `pip install -e .`)"
     documented = documented_flags()
-    # --help is intrinsic; edge-tts's --list-voices is a third-party command we cite
-    ignore = {"--help", "--list-voices"}
+    # --help is intrinsic; edge-tts's --list-voices is a third-party command we cite;
+    # --json/--text/--out/--rate belong to `sclibe voices available/preview`, whose
+    # subcommand help is hand-written (see config.py) rather than argparse-generated
+    ignore = {"--help", "--list-voices", "--json", "--text", "--out", "--rate"}
     for flag in sorted(actual - documented - ignore):
         problems.append(f"flag {flag} exists in the CLI but is documented nowhere")
     for flag in sorted(documented - actual - ignore):

@@ -1,5 +1,8 @@
 """Persistent settings: sclibe.json in the current directory, falling back to ~/.sclibe.json.
 
+Set SCLIBE_CONFIG to a file path to use that file instead (created on first write) —
+this is how a wrapper such as the Vibeo Mac app keeps its own settings separate.
+
 CLI flags override the config file; the config file overrides built-in defaults.
 Context is deliberately NOT a config key — it changes per recording, so the CLI
 prompts for it instead (see cli.py).
@@ -37,8 +40,17 @@ DEFAULTS = {
 }
 
 
+def env_config_path() -> Path | None:
+    """The file named by SCLIBE_CONFIG, if the variable is set (non-empty). Pure (tested)."""
+    raw = os.environ.get("SCLIBE_CONFIG", "").strip()
+    return Path(raw).expanduser() if raw else None
+
+
 def config_path() -> Path | None:
-    """First existing config: ./sclibe.json, then ~/.sclibe.json."""
+    """First existing config: $SCLIBE_CONFIG, then ./sclibe.json, then ~/.sclibe.json."""
+    forced = env_config_path()
+    if forced is not None:
+        return forced if forced.exists() else None
     for candidate in (Path("sclibe.json"), Path.home() / ".sclibe.json"):
         if candidate.exists():
             return candidate
@@ -125,8 +137,9 @@ def save_config(settings: dict) -> Path:
 # ---- `sclibe config` / `sclibe voices` subcommands ----
 
 def _active_file() -> Path:
-    """The config file edits go to: the one in use, else ~/.sclibe.json (created)."""
-    return config_path() or Path.home() / ".sclibe.json"
+    """The config file edits go to: $SCLIBE_CONFIG if set, else the one in use,
+    else ~/.sclibe.json (created)."""
+    return env_config_path() or config_path() or Path.home() / ".sclibe.json"
 
 
 def _read_file(path: Path) -> dict:
@@ -231,6 +244,83 @@ def _voices_use(name: str) -> None:
     print(f"narration voice is now {name!r} ({data['tts']}: {roster[name]['voice']})")
 
 
+def _voices_available(rest: list[str]) -> None:
+    """`sclibe voices available PROVIDER [--json]` — the voices a provider offers."""
+    from .tts import PROVIDERS, available_voices
+    from .util import ToolError
+
+    as_json = "--json" in rest
+    args = [a for a in rest if a != "--json"]
+    if len(args) != 1 or args[0] not in PROVIDERS:
+        sys.exit(f"usage: sclibe voices available PROVIDER [--json]   (PROVIDER: {', '.join(PROVIDERS)})")
+    try:
+        voices = available_voices(args[0])
+    except ToolError as exc:
+        sys.exit(f"error: {exc}")
+    except Exception as exc:  # offline, service change
+        sys.exit(f"error: could not list {args[0]} voices: {exc}")
+    if as_json:
+        print(json.dumps(voices, indent=2))
+        return
+    for v in voices:
+        extra = f"  {v['gender']}" if v.get("gender") else ""
+        print(f"  {v['id']:<40} {v.get('locale', ''):<10}{extra}")
+    print(f"\n{len(voices)} voices — use one with: sclibe voices add NAME {args[0]} VOICE_ID")
+
+
+def _voices_preview(rest: list[str]) -> None:
+    """`sclibe voices preview (NAME | PROVIDER VOICE_ID) [--text T] [--out PATH] [--rate N]`
+    Synthesizes a sample sentence and plays it (afplay) or writes it to --out."""
+    from .tts import PREVIEW_TEXT, PROVIDERS, synth
+    from .util import ToolError, check_tools, run
+
+    text, out, rate, positional = PREVIEW_TEXT, None, None, []
+    it = iter(rest)
+    for arg in it:
+        if arg == "--text":
+            text = next(it, "") or text
+        elif arg == "--out":
+            out = next(it, None)
+        elif arg == "--rate":
+            rate = next(it, None)
+        else:
+            positional.append(arg)
+    path = config_path()
+    data = _read_file(path) if path else {}
+    settings = merge_settings({}, data)
+    if len(positional) == 1:
+        settings["voice"] = positional[0]
+        if positional[0] not in (data.get("voices") or {}):
+            sys.exit(f"error: no saved voice named {positional[0]!r} — "
+                     "give PROVIDER VOICE_ID to preview an unsaved one")
+    elif len(positional) == 2:
+        if positional[0] not in PROVIDERS:
+            sys.exit(f"error: unknown provider {positional[0]!r} — use one of: {', '.join(PROVIDERS)}")
+        settings["tts"], settings["voice"] = positional
+    elif positional:
+        sys.exit("usage: sclibe voices preview [NAME | PROVIDER VOICE_ID] [--text T] [--out PATH]")
+    settings = resolve_voice(settings)
+    if rate is not None:
+        settings["rate"] = int(rate)
+    check_tools(require_say=settings["tts"] in ("say", "edge"))
+    import tempfile
+
+    base = Path(out).with_suffix("") if out else Path(tempfile.mkdtemp(prefix="sclibe-preview-")) / "preview"
+    try:
+        audio = synth(text, base, settings["tts"], settings["voice"], settings["rate"],
+                      settings["pronunciations"])
+    except ToolError as exc:
+        sys.exit(f"error: {exc}")
+    if out:
+        print(audio)  # the extension follows the provider (.mp3 or .aiff)
+        return
+    print(f"playing {settings['tts']} voice {settings['voice'] or '(default)'} …")
+    try:
+        run(["afplay", str(audio)])
+    except ToolError as exc:
+        sys.exit(f"error: {exc}")
+
+
 def _voices_command(rest: list[str]) -> None:
     sub = rest[0] if rest else "list"
     if sub == "list":
@@ -239,8 +329,13 @@ def _voices_command(rest: list[str]) -> None:
         _voices_add(rest[1], rest[2], rest[3])
     elif sub in ("use", "set", "select", "switch") and len(rest) == 2:
         _voices_use(rest[1])
+    elif sub == "available":
+        _voices_available(rest[1:])
+    elif sub == "preview":
+        _voices_preview(rest[1:])
     else:
-        sys.exit("usage: sclibe voices [list | add NAME PROVIDER VOICE_ID | use NAME]")
+        sys.exit("usage: sclibe voices [list | add NAME PROVIDER VOICE_ID | use NAME | "
+                 "available PROVIDER [--json] | preview [NAME | PROVIDER VOICE_ID] [--text T] [--out PATH]]")
 
 
 def command(argv: list[str]) -> None:
@@ -263,5 +358,6 @@ def command(argv: list[str]) -> None:
     else:
         sys.exit(
             "usage: sclibe config [show | set KEY VALUE | edit | path]\n"
-            "       sclibe voices [list | add NAME PROVIDER VOICE_ID | use NAME]"
+            "       sclibe voices [list | add NAME PROVIDER VOICE_ID | use NAME | "
+            "available PROVIDER | preview ...]"
         )

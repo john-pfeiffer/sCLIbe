@@ -55,6 +55,8 @@ Every flag is a one-off override of the corresponding [config setting](#sclibe-c
 | `--max-slowdown N` | `2` | How much a segment may slow to fit its narration; `1.0` = never slow, hold the last frame instead |
 | `-o DIR` / `--output-root DIR` | `./output` | Output root directory |
 | `--save-config` | off | Write this run's effective settings to `./sclibe.json` |
+| `-y` / `--yes` | off | Approve the paid re-analysis without asking — what an interactive run would prompt for. A non-interactive run (no terminal) otherwise keeps the cached analysis |
+| `--progress-json` | off | Write one JSON event per line to stdout (`start`, `stage`, `log`, `done`, `error`) for wrappers such as the [Vibeo Mac app](https://github.com/john-pfeiffer/Vibeo); the normal log still goes to stderr. Event shapes are in [how it works](how-it-works.md#progress-events) |
 | `-v` / `--verbose` | off | Show every underlying ffmpeg command |
 | `-h` / `--help` | — | Usage summary |
 
@@ -62,7 +64,7 @@ Every flag is a one-off override of the corresponding [config setting](#sclibe-c
 
 ## `sclibe config` — settings
 
-Settings live in **one JSON file**: `sclibe.json` in the current directory if present, else `~/.sclibe.json`. The file always contains the complete current state; commands and hand-edits are interchangeable ways to change the same file.
+Settings live in **one JSON file**: the file named by `SCLIBE_CONFIG` if that variable is set, else `sclibe.json` in the current directory if present, else `~/.sclibe.json`. The file always contains the complete current state; commands and hand-edits are interchangeable ways to change the same file.
 
 | Command | Does |
 |---|---|
@@ -84,6 +86,8 @@ A roster of voices under friendly names. Each saved voice remembers its provider
 | `sclibe voices` (or `voices list`) | List saved voices; the active one is marked |
 | `sclibe voices add NAME PROVIDER VOICE_ID` | Save a voice (e.g. `sclibe voices add narrator elevenlabs UgBB...`) |
 | `sclibe voices use NAME` | Make a saved voice the narration voice |
+| `sclibe voices available PROVIDER [--json]` | List every voice a provider offers (`say` reads the Mac's installed voices; `edge` and `elevenlabs` ask the service; `openai` is a fixed list). `--json` gives `[{"id", "name", "locale", ...}]` for pickers |
+| `sclibe voices preview [NAME \| PROVIDER VOICE_ID] [--text T] [--out PATH] [--rate N]` | Speak a sample sentence with a saved voice, an unsaved provider voice, or (no argument) the current voice. Plays it, or with `--out` writes the audio file and prints its path |
 
 **Forgiving forms** — these all work and mean the same thing: `sclibe voice ...` (singular), `sclibe config voice ...` / `sclibe config voices ...` (nested under config), and `set` / `select` / `switch` as synonyms for `use`.
 
@@ -105,6 +109,7 @@ sclibe config voice set backup      # same as: sclibe voices use backup
 | `XAI_API_KEY` | Analysis with `grok-*` models | [console.x.ai](https://console.x.ai) |
 | `ELEVENLABS_API_KEY` | `--tts elevenlabs` | [elevenlabs.io](https://elevenlabs.io) → profile → API keys |
 | `EDITOR` | Optional — which editor `sclibe config edit` opens | your shell profile |
+| `SCLIBE_CONFIG` | Optional — path of the settings file to use instead of `./sclibe.json` / `~/.sclibe.json` (created on first write). The Vibeo app sets it to keep its own settings | — |
 
 Add keys to `~/.zshrc` (`export ANTHROPIC_API_KEY="..."`) so every terminal has them. Only **one** analysis key is required — whichever provider your `model` setting uses.
 

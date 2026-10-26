@@ -36,6 +36,78 @@ def apply_pronunciations(text: str, pronunciations: dict[str, str]) -> str:
     return text
 
 
+OPENAI_VOICES = ("alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova",
+                 "sage", "shimmer", "verse")
+
+PREVIEW_TEXT = "Hi, this is how your Vibeo narration will sound. Let's walk through the steps."
+
+
+def parse_say_voices(listing: str) -> list[dict]:
+    """Parse `say -v ?` output into [{"id", "name", "locale"}]. Pure (tested).
+
+    Lines look like:  Samantha            en_US    # Hello, my name is Samantha.
+    Some voices have multi-word names ("Eddy (English (US))"); the locale is the
+    last token before the `#`."""
+    voices = []
+    for line in listing.splitlines():
+        head, _, _comment = line.partition("#")
+        parts = head.split()
+        if len(parts) < 2:
+            continue
+        locale = parts[-1]
+        name = " ".join(parts[:-1])
+        voices.append({"id": name, "name": name, "locale": locale})
+    return voices
+
+
+def available_voices(provider: str) -> list[dict]:
+    """Voices a provider offers, as [{"id", "name", "locale", ...}], for pickers.
+    edge and elevenlabs need the network; say reads the local voice list."""
+    if provider == "say":
+        return parse_say_voices(run(["say", "-v", "?"]).stdout)
+    if provider == "openai":
+        return [{"id": v, "name": v.capitalize(), "locale": "multilingual"} for v in OPENAI_VOICES]
+    if provider == "edge":
+        import asyncio
+
+        import edge_tts
+
+        raw = asyncio.run(edge_tts.list_voices())
+        return [
+            {
+                "id": v["ShortName"],
+                "name": v.get("FriendlyName", v["ShortName"]).replace("Microsoft ", "")
+                .replace(" Online (Natural)", ""),
+                "locale": v.get("Locale", ""),
+                "gender": v.get("Gender", ""),
+            }
+            for v in sorted(raw, key=lambda v: (v.get("Locale", ""), v["ShortName"]))
+        ]
+    if provider == "elevenlabs":
+        import json
+        import os
+        import urllib.request
+
+        key = os.environ.get("ELEVENLABS_API_KEY")
+        if not key:
+            raise ToolError("listing ElevenLabs voices needs ELEVENLABS_API_KEY")
+        request = urllib.request.Request(
+            "https://api.elevenlabs.io/v1/voices", headers={"xi-api-key": key}
+        )
+        with urllib.request.urlopen(request, timeout=60) as response:
+            data = json.loads(response.read())
+        return [
+            {
+                "id": v["voice_id"],
+                "name": v.get("name", v["voice_id"]),
+                "locale": (v.get("labels") or {}).get("accent", ""),
+                "gender": (v.get("labels") or {}).get("gender", ""),
+            }
+            for v in data.get("voices", [])
+        ]
+    raise ToolError(f"unknown provider {provider!r} — use one of: {', '.join(PROVIDERS)}")
+
+
 def synth(
     text: str,
     out_base: Path,

@@ -21,13 +21,15 @@ from . import analyze as analyze_mod
 from . import cache
 from . import doc as doc_mod
 from . import frames as frames_mod
-from . import ingest, narrate, video as video_mod
+from . import ingest, narrate, progress, video as video_mod
 from .config import DEFAULTS, load_config, merge_settings, resolve_voice, save_config
 from .style import Style, ffcolor, title_card_mode
 from .util import ToolError, check_tools, log
 
 STAGES = ["probe", "frames", "analyze", "doc", "video", "narrate"]
 VIDEO_STAGES = {"video", "narrate"}
+
+PROGRESS = progress.Emitter()  # enabled by --progress-json
 
 
 @dataclass
@@ -48,6 +50,7 @@ class Job:
     style: Style = field(default_factory=Style)
     meta: dict = field(default_factory=dict)
     segments: list = field(default_factory=list)
+    assume_yes: bool = False  # --yes: approve the paid re-analysis without a prompt
 
     @property
     def work(self) -> Path:
@@ -120,14 +123,18 @@ def stage_analyze(job: Job, force: bool) -> bool:
             log.info("analyze: up to date — no API cost")
             return False
         log.warning("analyze: %s", "; ".join(problems))
-        if not sys.stdin.isatty():
-            log.warning("keeping the cached analysis (non-interactive) — use --from analyze to redo it")
+        if job.assume_yes:
+            log.info("re-running the AI analysis (--yes)")
+        elif not sys.stdin.isatty():
+            log.warning("keeping the cached analysis (non-interactive) — use --yes or "
+                        "--from analyze to redo it")
             return False
-        _pending_stdin_text()  # a stray paste must not answer for the paid step
-        answer = input("Re-run the AI analysis? This is the paid step. [y/N] ").strip().lower()
-        if answer not in ("y", "yes"):
-            log.info("keeping the cached analysis")
-            return False
+        else:
+            _pending_stdin_text()  # a stray paste must not answer for the paid step
+            answer = input("Re-run the AI analysis? This is the paid step. [y/N] ").strip().lower()
+            if answer not in ("y", "yes"):
+                log.info("keeping the cached analysis")
+                return False
         if job.context is None:
             job.context = meta.get("context")  # keep the old context unless a new one was given
     analyze_mod.analyze(
@@ -282,6 +289,14 @@ def build_parser() -> argparse.ArgumentParser:
                              f"(default: {DEFAULTS['max_slowdown']:g})")
     parser.add_argument("--save-config", action="store_true",
                         help="write the effective settings to ./sclibe.json and continue")
+    parser.add_argument("-y", "--yes", action="store_true",
+                        help="approve the paid re-analysis without asking (what an interactive "
+                             "run would prompt for; a non-interactive run otherwise keeps the "
+                             "cached analysis)")
+    parser.add_argument("--progress-json", action="store_true",
+                        help="write one JSON event per line to stdout (stage start/done, log "
+                             "lines, final output paths) for wrappers such as the Vibeo app; "
+                             "the normal log still goes to stderr")
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser
 
@@ -414,7 +429,11 @@ def main() -> None:
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(message)s",
+        stream=sys.stderr,
     )
+    if args.progress_json:
+        PROGRESS.enabled = True
+        log.addHandler(progress.LogHandler(PROGRESS))
 
     try:
         settings = merge_settings(
@@ -480,7 +499,7 @@ def main() -> None:
     except ValueError as exc:
         sys.exit(f"error: {exc}")
 
-    outdir = Path(settings["output_root"]) / args.video.stem
+    outdir = Path(settings["output_root"]).expanduser() / args.video.stem
     from_index = STAGES.index(args.from_stage) if args.from_stage else None
 
     # Ask for context only when the paid analysis will actually run this time.
@@ -514,19 +533,31 @@ def main() -> None:
         context=context,
         pronunciations=settings["pronunciations"],
         style=style,
+        assume_yes=args.yes,
     )
     job.work.mkdir(parents=True, exist_ok=True)
 
+    planned = [s for s in STAGES if not (args.no_video and s in VIDEO_STAGES)]
+    PROGRESS.emit("start", video=args.video.resolve(), outdir=job.outdir.resolve(),
+                  stages=planned)
     try:
         did_work = False
         for i, stage in enumerate(STAGES):
             if args.no_video and stage in VIDEO_STAGES:
                 continue
             force = args.force or (from_index is not None and i >= from_index)
-            if RUNNERS[stage](job, force):
+            PROGRESS.emit("stage", stage=stage, status="start")
+            worked = RUNNERS[stage](job, force)
+            PROGRESS.emit("stage", stage=stage, status="done" if worked else "skipped")
+            if worked:
                 did_work = True
     except ToolError as exc:
+        PROGRESS.emit("error", message=str(exc))
         sys.exit(f"error: {exc}")
+    except SystemExit as exc:  # e.g. a missing API key inside a stage
+        if exc.code not in (None, 0):
+            PROGRESS.emit("error", message=str(exc.code))
+        raise
 
     if did_work:
         log.info("\ndone → %s", job.outdir.resolve())
@@ -537,6 +568,8 @@ def main() -> None:
             "or use --force to redo everything)",
             job.outdir.resolve(),
         )
+    PROGRESS.emit("done", outdir=job.outdir.resolve(), did_work=did_work,
+                  outputs=progress.outputs_present(job.outdir))
 
 
 if __name__ == "__main__":
