@@ -295,7 +295,7 @@ def build_parser() -> argparse.ArgumentParser:
                              "cached analysis)")
     parser.add_argument("--progress-json", action="store_true",
                         help="write one JSON event per line to stdout (stage start/done, log "
-                             "lines, final output paths) for wrappers such as the Vibeo app; "
+                             "lines, final output paths) for wrappers such as the Steno app; "
                              "the normal log still goes to stderr")
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser

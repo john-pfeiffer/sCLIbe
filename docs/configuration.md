@@ -15,7 +15,7 @@ One JSON file. sCLIbe looks in two places, in order:
 1. **`sclibe.json`** in the directory you run from — per-project settings
 2. **`~/.sclibe.json`** in your home folder — your personal defaults
 
-A wrapper can point sCLIbe at any file with the `SCLIBE_CONFIG` environment variable, which wins over both; that is how the [Vibeo Mac app](https://github.com/john-pfeiffer/Vibeo) keeps its settings in its own folder.
+A wrapper can point sCLIbe at any file with the `SCLIBE_CONFIG` environment variable, which wins over both; that is how the [Steno Mac app](https://github.com/john-pfeiffer/Steno) keeps its settings in its own folder.
 
 The first one found wins. Most people only ever have the second. To see which is active:
 

@@ -106,7 +106,7 @@ Safe to hand-edit: any text field, and the time fields (keep ranges in order and
 
 ## Progress events
 
-`sclibe --progress-json` is how another program (the [Vibeo Mac app](https://github.com/john-pfeiffer/Vibeo), an editor integration, a script) drives the pipeline without parsing log text. Each line on stdout is one JSON object with an `event` key; stderr keeps the human log. Combine it with `--yes` and `--context` so nothing waits on a prompt.
+`sclibe --progress-json` is how another program (the [Steno Mac app](https://github.com/john-pfeiffer/Steno), an editor integration, a script) drives the pipeline without parsing log text. Each line on stdout is one JSON object with an `event` key; stderr keeps the human log. Combine it with `--yes` and `--context` so nothing waits on a prompt.
 
 | Event | Fields | When |
 |---|---|---|

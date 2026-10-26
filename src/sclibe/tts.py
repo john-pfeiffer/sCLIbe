@@ -39,7 +39,7 @@ def apply_pronunciations(text: str, pronunciations: dict[str, str]) -> str:
 OPENAI_VOICES = ("alloy", "ash", "ballad", "coral", "echo", "fable", "onyx", "nova",
                  "sage", "shimmer", "verse")
 
-PREVIEW_TEXT = "Hi, this is how your Vibeo narration will sound. Let's walk through the steps."
+PREVIEW_TEXT = "Hi, this is how your Steno narration will sound. Let's walk through the steps."
 
 
 def parse_say_voices(listing: str) -> list[dict]:

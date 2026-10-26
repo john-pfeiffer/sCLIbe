@@ -56,7 +56,7 @@ Every flag is a one-off override of the corresponding [config setting](#sclibe-c
 | `-o DIR` / `--output-root DIR` | `./output` | Output root directory |
 | `--save-config` | off | Write this run's effective settings to `./sclibe.json` |
 | `-y` / `--yes` | off | Approve the paid re-analysis without asking — what an interactive run would prompt for. A non-interactive run (no terminal) otherwise keeps the cached analysis |
-| `--progress-json` | off | Write one JSON event per line to stdout (`start`, `stage`, `log`, `done`, `error`) for wrappers such as the [Vibeo Mac app](https://github.com/john-pfeiffer/Vibeo); the normal log still goes to stderr. Event shapes are in [how it works](how-it-works.md#progress-events) |
+| `--progress-json` | off | Write one JSON event per line to stdout (`start`, `stage`, `log`, `done`, `error`) for wrappers such as the [Steno Mac app](https://github.com/john-pfeiffer/Steno); the normal log still goes to stderr. Event shapes are in [how it works](how-it-works.md#progress-events) |
 | `-v` / `--verbose` | off | Show every underlying ffmpeg command |
 | `-h` / `--help` | — | Usage summary |
 
@@ -109,7 +109,7 @@ sclibe config voice set backup      # same as: sclibe voices use backup
 | `XAI_API_KEY` | Analysis with `grok-*` models | [console.x.ai](https://console.x.ai) |
 | `ELEVENLABS_API_KEY` | `--tts elevenlabs` | [elevenlabs.io](https://elevenlabs.io) → profile → API keys |
 | `EDITOR` | Optional — which editor `sclibe config edit` opens | your shell profile |
-| `SCLIBE_CONFIG` | Optional — path of the settings file to use instead of `./sclibe.json` / `~/.sclibe.json` (created on first write). The Vibeo app sets it to keep its own settings | — |
+| `SCLIBE_CONFIG` | Optional — path of the settings file to use instead of `./sclibe.json` / `~/.sclibe.json` (created on first write). The Steno app sets it to keep its own settings | — |
 
 Add keys to `~/.zshrc` (`export ANTHROPIC_API_KEY="..."`) so every terminal has them. Only **one** analysis key is required — whichever provider your `model` setting uses.
 

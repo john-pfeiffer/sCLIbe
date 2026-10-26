@@ -1,4 +1,4 @@
-"""Machine-readable progress for wrappers (the Vibeo Mac app, scripts, editors).
+"""Machine-readable progress for wrappers (the Steno Mac app, scripts, editors).
 
 With `--progress-json`, sclibe writes one JSON object per line to stdout while the
 human-readable log keeps going to stderr. Events (all have an "event" key):

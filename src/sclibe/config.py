@@ -1,7 +1,7 @@
 """Persistent settings: sclibe.json in the current directory, falling back to ~/.sclibe.json.
 
 Set SCLIBE_CONFIG to a file path to use that file instead (created on first write) —
-this is how a wrapper such as the Vibeo Mac app keeps its own settings separate.
+this is how a wrapper such as the Steno Mac app keeps its own settings separate.
 
 CLI flags override the config file; the config file overrides built-in defaults.
 Context is deliberately NOT a config key — it changes per recording, so the CLI

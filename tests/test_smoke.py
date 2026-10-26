@@ -316,7 +316,7 @@ def test_stale_reason_detects_changes():
 def test_env_config_path_wins(monkeypatch, tmp_path):
     from sclibe import config
 
-    target = tmp_path / "vibeo" / "sclibe.json"
+    target = tmp_path / "steno" / "sclibe.json"
     monkeypatch.setenv("SCLIBE_CONFIG", str(target))
     assert config.env_config_path() == target
     assert config.config_path() is None          # set but not created yet -> no config in use
